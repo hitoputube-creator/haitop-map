@@ -611,17 +611,13 @@ const DB = {
 // ════════════════════════════════════════════
 // ■ MAP TILE LAYERS
 // ════════════════════════════════════════════
-// OSM 기본 타일 (배경 폴백)
+// OSM 기본 타일 (안정적, CORS 없음)
 const TILE_OSM = 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png';
 const TILE_OSM_ATTR = '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>';
 
-// 카카오 기본 배경 (로드맵)
-const TILE_KAKAO_BASE = 'https://map{s}.daumcdn.net/map_2d_hd/1808hsm/L{z}/{y}/{x}.png';
-const TILE_KAKAO_SUBDOMAINS = ['1','2','3','4'];
-const TILE_KAKAO_ATTR = '© <a href="https://map.kakao.com">Kakao Maps</a>';
-
 // 카카오 지적편집도 오버레이
 const TILE_CADASTRAL = 'https://map{s}.kakao.com/map/cadastral/{z}/{x}/{y}.png';
+const TILE_KAKAO_SUBDOMAINS = ['1','2','3','4'];
 
 // ════════════════════════════════════════════
 // ■ MAP TYPE
@@ -656,28 +652,19 @@ function setMapType(type) {
 function createMap(elId, lat, lng, zoom) {
   const map = L.map(elId, { zoomControl: true }).setView([lat, lng], zoom);
 
-  // 카카오 배경지도 (실패시 OSM 폴백)
-  const baseLayer = L.tileLayer(TILE_KAKAO_BASE, {
-    attribution: TILE_KAKAO_ATTR,
-    subdomains: TILE_KAKAO_SUBDOMAINS,
-    maxZoom: 14,
-    tms: false,
+  // OSM 베이스 (안정적)
+  const baseLayer = L.tileLayer(TILE_OSM, {
+    attribution: TILE_OSM_ATTR,
+    maxZoom: 19,
   }).addTo(map);
 
-  let osmFallback = false;
-  baseLayer.on('tileerror', () => {
-    if (osmFallback) return;
-    osmFallback = true;
-    map.removeLayer(baseLayer);
-    L.tileLayer(TILE_OSM, { attribution: TILE_OSM_ATTR, maxZoom: 19 }).addTo(map);
-  });
-
-  // 카카오 지적편집도 오버레이
+  // 카카오 지적편집도 오버레이 (별도 레이어)
   const cadastralLayer = L.tileLayer(TILE_CADASTRAL, {
     attribution: '© Kakao 지적편집도',
     subdomains: TILE_KAKAO_SUBDOMAINS,
-    maxZoom: 14,
-    opacity: 1.0,
+    maxZoom: 19,
+    opacity: 0.85,
+    crossOrigin: true,
   });
 
   return { map, baseLayer, cadastralLayer };
@@ -933,10 +920,10 @@ function setupIndustrial(map) {
   COMPLEXES.forEach(c => {
     // 폴리곤 영역 (회색 반투명 기본, 선택 시 단지색)
     const poly = L.polygon(c.polygon, {
-      color: '#555',
-      weight: 1.5,
-      fillColor: '#888',
-      fillOpacity: 0.18,
+      color: c.color,
+      weight: 2,
+      fillColor: c.color,
+      fillOpacity: 0.25,
     }).addTo(map);
 
     // 팝업 (매물 목록 + 추가 버튼)
@@ -973,7 +960,7 @@ function selectComplex(id) {
   if (!c) return;
   // 전체 폴리곤 원래 스타일로 리셋
   COMPLEXES.forEach(x => {
-    if (x._poly) x._poly.setStyle({ color: '#555', weight: 1.5, fillColor: '#888', fillOpacity: 0.18 });
+    if (x._poly) x._poly.setStyle({ color: x.color, weight: 2, fillColor: x.color, fillOpacity: 0.25 });
   });
   // 선택된 단지 강조
   if (c._poly) c._poly.setStyle({ color: c.color, weight: 2.5, fillColor: c.color, fillOpacity: 0.40 });
