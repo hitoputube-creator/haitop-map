@@ -611,16 +611,17 @@ const DB = {
 // ════════════════════════════════════════════
 // ■ MAP TILE LAYERS
 // ════════════════════════════════════════════
-// OSM 기본 타일
+// OSM 기본 타일 (배경 폴백)
 const TILE_OSM = 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png';
 const TILE_OSM_ATTR = '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>';
 
-// 브이월드 배경지도 (국토교통부)
-const TILE_VWORLD = 'https://xdworld.vworld.kr/2d/Base/service/{z}/{x}/{y}.png';
-const TILE_VWORLD_ATTR = '© <a href="https://www.vworld.kr">VWorld</a> 국토교통부';
+// 카카오 기본 배경 (로드맵)
+const TILE_KAKAO_BASE = 'https://map{s}.daumcdn.net/map_2d_hd/1808hsm/L{z}/{y}/{x}.png';
+const TILE_KAKAO_SUBDOMAINS = ['1','2','3','4'];
+const TILE_KAKAO_ATTR = '© <a href="https://map.kakao.com">Kakao Maps</a>';
 
-// 브이월드 지적도 오버레이
-const TILE_CADASTRAL = 'https://xdworld.vworld.kr/2d/Cadastral/service/{z}/{x}/{y}.png';
+// 카카오 지적편집도 오버레이
+const TILE_CADASTRAL = 'https://map{s}.daumcdn.net/map_usedistrict_hd/1811hsm/L{z}/{y}/{x}.png';
 
 // ════════════════════════════════════════════
 // ■ MAP TYPE
@@ -655,24 +656,28 @@ function setMapType(type) {
 function createMap(elId, lat, lng, zoom) {
   const map = L.map(elId, { zoomControl: true }).setView([lat, lng], zoom);
 
-  // 브이월드 배경지도 (실패시 OSM 폴백)
-  const baseLayer = L.tileLayer(TILE_VWORLD, {
-    attribution: TILE_VWORLD_ATTR,
-    maxZoom: 19,
-    errorTileUrl: '',
+  // 카카오 배경지도 (실패시 OSM 폴백)
+  const baseLayer = L.tileLayer(TILE_KAKAO_BASE, {
+    attribution: TILE_KAKAO_ATTR,
+    subdomains: TILE_KAKAO_SUBDOMAINS,
+    maxZoom: 14,
+    tms: false,
   }).addTo(map);
 
+  let osmFallback = false;
   baseLayer.on('tileerror', () => {
-    // 브이월드 실패시 OSM으로 교체
+    if (osmFallback) return;
+    osmFallback = true;
     map.removeLayer(baseLayer);
     L.tileLayer(TILE_OSM, { attribution: TILE_OSM_ATTR, maxZoom: 19 }).addTo(map);
   });
 
-  // 지적도 오버레이
+  // 카카오 지적편집도 오버레이
   const cadastralLayer = L.tileLayer(TILE_CADASTRAL, {
-    attribution: '© 국토교통부 지적도',
-    maxZoom: 19,
-    opacity: 0.7,
+    attribution: '© Kakao 지적편집도',
+    subdomains: TILE_KAKAO_SUBDOMAINS,
+    maxZoom: 14,
+    opacity: 1.0,
   });
 
   return { map, baseLayer, cadastralLayer };
@@ -816,18 +821,30 @@ function focusProp(id, tab) {
 // ════════════════════════════════════════════
 // ■ TAB 2 — 파주 산업단지
 // ════════════════════════════════════════════
+// polygon: 각 단지의 대략적인 경계 좌표 [lat, lng]
 const COMPLEXES = [
-  { id: 'tanhyeon-nat',  name: '탄현국가산업단지',  lat: 37.7980, lng: 126.6855 },
-  { id: 'seongdong',     name: '성동리산업단지',     lat: 37.8118, lng: 126.7050 },
-  { id: 'tanhyeon-gen',  name: '탄현일반산업단지',   lat: 37.7920, lng: 126.6985 },
-  { id: 'chukbyeon',     name: '축현일반산업단지',   lat: 37.8015, lng: 126.7210 },
-  { id: 'dangdong',      name: '당동일반산업단지',   lat: 37.7248, lng: 126.7455 },
-  { id: 'weollong',      name: '월롱일반산업단지',   lat: 37.7525, lng: 126.7540 },
-  { id: 'seonyu',        name: '선유일반산업단지',   lat: 37.7805, lng: 126.8095 },
-  { id: 'beobwon',       name: '법원일반산업단지',   lat: 37.8248, lng: 126.8215 },
-  { id: 'munbal',        name: '문발일반산업단지',   lat: 37.7105, lng: 126.8058 },
-  { id: 'pajupub',       name: '파주출판산업단지',   lat: 37.7050, lng: 126.7785 },
-  { id: 'osan',          name: '오산일반산업단지',   lat: 37.7405, lng: 126.8348 },
+  { id: 'tanhyeon-nat', name: '탄현국가산업단지', lat: 37.7980, lng: 126.6855, color: '#1565C0',
+    polygon: [[37.8010,126.6800],[37.8010,126.6910],[37.7950,126.6910],[37.7950,126.6800]] },
+  { id: 'seongdong',    name: '성동리산업단지',   lat: 37.8118, lng: 126.7050, color: '#2E7D32',
+    polygon: [[37.8145,126.6990],[37.8145,126.7110],[37.8090,126.7110],[37.8090,126.6990]] },
+  { id: 'tanhyeon-gen', name: '탄현일반산업단지', lat: 37.7920, lng: 126.6985, color: '#6A1B9A',
+    polygon: [[37.7945,126.6935],[37.7945,126.7035],[37.7895,126.7035],[37.7895,126.6935]] },
+  { id: 'chukbyeon',    name: '축현일반산업단지', lat: 37.8015, lng: 126.7210, color: '#00838F',
+    polygon: [[37.8040,126.7155],[37.8040,126.7265],[37.7990,126.7265],[37.7990,126.7155]] },
+  { id: 'dangdong',     name: '당동일반산업단지', lat: 37.7248, lng: 126.7455, color: '#E65100',
+    polygon: [[37.7275,126.7400],[37.7275,126.7510],[37.7220,126.7510],[37.7220,126.7400]] },
+  { id: 'weollong',     name: '월롱일반산업단지', lat: 37.7525, lng: 126.7540, color: '#AD1457',
+    polygon: [[37.7555,126.7485],[37.7555,126.7595],[37.7495,126.7595],[37.7495,126.7485]] },
+  { id: 'seonyu',       name: '선유일반산업단지', lat: 37.7805, lng: 126.8095, color: '#4527A0',
+    polygon: [[37.7830,126.8040],[37.7830,126.8150],[37.7780,126.8150],[37.7780,126.8040]] },
+  { id: 'beobwon',      name: '법원일반산업단지', lat: 37.8248, lng: 126.8215, color: '#558B2F',
+    polygon: [[37.8275,126.8155],[37.8275,126.8275],[37.8220,126.8275],[37.8220,126.8155]] },
+  { id: 'munbal',       name: '문발일반산업단지', lat: 37.7105, lng: 126.8058, color: '#00695C',
+    polygon: [[37.7135,126.8000],[37.7135,126.8115],[37.7075,126.8115],[37.7075,126.8000]] },
+  { id: 'pajupub',      name: '파주출판산업단지', lat: 37.7050, lng: 126.7785, color: '#F57F17',
+    polygon: [[37.7085,126.7725],[37.7085,126.7845],[37.7015,126.7845],[37.7015,126.7725]] },
+  { id: 'osan',         name: '오산일반산업단지', lat: 37.7405, lng: 126.8348, color: '#B71C1C',
+    polygon: [[37.7430,126.8290],[37.7430,126.8405],[37.7380,126.8405],[37.7380,126.8290]] },
 ];
 
 let selComplex = null;
@@ -835,16 +852,30 @@ let selComplex = null;
 function setupIndustrial(map) {
   renderComplexChips();
   COMPLEXES.forEach(c => {
-    const icon = L.divIcon({
+    // 폴리곤 영역
+    const poly = L.polygon(c.polygon, {
+      color: c.color,
+      weight: 2,
+      fillColor: c.color,
+      fillOpacity: 0.25,
+    }).addTo(map);
+    poly.on('click', () => { selectComplex(c.id); map.setView([c.lat, c.lng], 14); });
+
+    // 라벨 (중앙에 오버레이)
+    const label = L.divIcon({
       className: '',
-      html: `<div style="background:#1a2744;color:#d4af37;border:1.5px solid #d4af37;padding:4px 8px;border-radius:5px;font-size:10px;font-weight:700;white-space:nowrap;box-shadow:0 2px 6px rgba(0,0,0,0.3)">${c.name}</div>`,
-      iconAnchor: [0, 0],
+      html: `<div style="background:${c.color};color:#fff;border:1.5px solid #fff;padding:3px 7px;border-radius:4px;font-size:10px;font-weight:700;white-space:nowrap;box-shadow:0 2px 6px rgba(0,0,0,0.3);opacity:0.92">${c.name}</div>`,
+      iconAnchor: [0, 10],
     });
-    const mk = L.marker([c.lat, c.lng], { icon }).addTo(map);
-    mk.on('click', () => {
-      selectComplex(c.id);
-      map.setView([c.lat, c.lng], 14);
+    const mk = L.marker([c.lat, c.lng], { icon: label }).addTo(map);
+    mk.on('click', () => { selectComplex(c.id); map.setView([c.lat, c.lng], 14); });
+
+    // 선택 시 하이라이트
+    poly.on('click', () => {
+      COMPLEXES.forEach(x => { if (x._poly) x._poly.setStyle({ fillOpacity: 0.25, weight: 2 }); });
+      poly.setStyle({ fillOpacity: 0.5, weight: 3 });
     });
+    c._poly = poly;
   });
 }
 
@@ -858,7 +889,11 @@ function selectComplex(id) {
   renderComplexChips();
   renderIndustrialList();
   const c = COMPLEXES.find(x => x.id === id);
-  if (c && mapObjects[1]) mapObjects[1].setView([c.lat, c.lng], 14);
+  if (!c) return;
+  // 폴리곤 하이라이트
+  COMPLEXES.forEach(x => { if (x._poly) x._poly.setStyle({ fillOpacity: 0.25, weight: 2 }); });
+  if (c._poly) c._poly.setStyle({ fillOpacity: 0.55, weight: 3 });
+  if (mapObjects[1]) mapObjects[1].setView([c.lat, c.lng], 14);
 }
 
 function renderIndustrialList() {
