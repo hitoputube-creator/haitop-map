@@ -1,0 +1,1213 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>하이탑부동산 지도앱</title>
+  <script type="text/javascript" src="//dapi.kakao.com/v2/maps/sdk.js?appkey=994972e516397c11f34cc65482c89f96&libraries=services"></script>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    html, body {
+      height: 100%;
+      font-family: 'Segoe UI', 'Noto Sans KR', sans-serif;
+      background: #f0f2f5;
+      color: #333;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    /* ─── HEADER ─── */
+    .header {
+      background: #1a2744;
+      color: #d4af37;
+      padding: 10px 16px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-shrink: 0;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.35);
+      z-index: 50;
+    }
+    .header-left { display: flex; align-items: center; gap: 10px; }
+    .header-logo { font-size: 18px; font-weight: 800; letter-spacing: -0.5px; }
+    .header-sub { font-size: 11px; color: #9aaccc; }
+    .btn-shortcut {
+      background: #d4af37;
+      color: #1a2744;
+      padding: 7px 13px;
+      border-radius: 6px;
+      text-decoration: none;
+      font-size: 12px;
+      font-weight: 700;
+      white-space: nowrap;
+      transition: opacity 0.2s;
+    }
+    .btn-shortcut:hover { opacity: 0.85; }
+
+    /* ─── TABS ─── */
+    .tab-nav {
+      background: #172039;
+      display: flex;
+      flex-shrink: 0;
+      border-bottom: 2px solid #d4af37;
+    }
+    .tab-btn {
+      flex: 1;
+      padding: 11px 6px;
+      background: none;
+      border: none;
+      color: #7a91b5;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+      border-bottom: 3px solid transparent;
+      margin-bottom: -2px;
+    }
+    .tab-btn:hover { color: #d4af37; background: rgba(212,175,55,0.07); }
+    .tab-btn.active { color: #d4af37; border-bottom-color: #d4af37; background: rgba(212,175,55,0.1); }
+
+    /* ─── TAB CONTENT ─── */
+    .tab-content {
+      display: none;
+      flex: 1;
+      overflow: hidden;
+    }
+    .tab-content.active { display: flex; }
+    #tab-2.active { flex-direction: column; }
+
+    /* ─── MAP ─── */
+    .map-wrap { flex: 1; position: relative; min-height: 0; }
+    .map-div { width: 100%; height: 100%; min-height: calc(100vh - 200px); background: #e8edf0; }
+
+    /* ─── MAP ERROR OVERLAY ─── */
+    .map-error {
+      position: absolute; inset: 0; z-index: 200;
+      display: flex; flex-direction: column;
+      align-items: center; justify-content: center;
+      background: #f5f7fa; text-align: center; padding: 24px;
+    }
+    .map-error .me-icon { font-size: 40px; margin-bottom: 12px; }
+    .map-error h3 { color: #1a2744; font-size: 15px; margin-bottom: 8px; }
+    .map-error p { color: #666; font-size: 12px; line-height: 1.7; }
+    .map-error code { background: #eee; padding: 2px 6px; border-radius: 4px; font-size: 11px; }
+    .map-error a { color: #1558d6; }
+
+    /* ─── SIDEBAR / PANEL ─── */
+    .panel {
+      width: 290px;
+      flex-shrink: 0;
+      background: #fff;
+      display: flex;
+      flex-direction: column;
+      box-shadow: -3px 0 12px rgba(0,0,0,0.1);
+      overflow: hidden;
+    }
+    .panel-header {
+      background: #1a2744;
+      color: #d4af37;
+      padding: 12px 14px;
+      font-size: 13px;
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-shrink: 0;
+    }
+    .panel-header .badge {
+      background: #d4af37;
+      color: #1a2744;
+      padding: 1px 8px;
+      border-radius: 10px;
+      font-size: 11px;
+      font-weight: 800;
+      margin-left: 6px;
+    }
+    .panel-body { flex: 1; overflow-y: auto; }
+
+    .btn-add {
+      background: #d4af37;
+      color: #1a2744;
+      border: none;
+      padding: 5px 11px;
+      border-radius: 5px;
+      font-size: 12px;
+      font-weight: 700;
+      cursor: pointer;
+      transition: opacity 0.2s;
+    }
+    .btn-add:hover { opacity: 0.85; }
+
+    /* ─── PROPERTY / PLOT CARDS ─── */
+    .prop-card {
+      padding: 12px 14px;
+      border-bottom: 1px solid #eef0f4;
+      cursor: pointer;
+      transition: background 0.15s;
+    }
+    .prop-card:hover { background: #fdf9ed; }
+    .prop-card .c-addr { font-weight: 700; font-size: 13px; color: #1a2744; }
+    .prop-card .c-price { font-size: 12px; color: #c49a10; font-weight: 600; margin-top: 3px; }
+    .prop-card .c-use { font-size: 11px; color: #888; margin-top: 2px; }
+    .card-actions { display: flex; gap: 6px; margin-top: 7px; }
+    .btn-e { background: #e8f0fe; color: #1558d6; border: none; padding: 3px 9px; border-radius: 4px; font-size: 11px; cursor: pointer; }
+    .btn-d { background: #fce8e6; color: #c62828; border: none; padding: 3px 9px; border-radius: 4px; font-size: 11px; cursor: pointer; }
+    .btn-e:hover { background: #d2e3fc; }
+    .btn-d:hover { background: #f8d7d4; }
+
+    /* ─── MAP CONTROLS ─── */
+    .map-controls {
+      position: absolute;
+      top: 10px;
+      left: 10px;
+      z-index: 100;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+    .map-ctrl-btn {
+      background: white;
+      border: 1.5px solid #ddd;
+      padding: 8px 14px;
+      border-radius: 7px;
+      font-size: 12px;
+      font-weight: 600;
+      cursor: pointer;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+      transition: all 0.15s;
+    }
+    .map-ctrl-btn:hover { background: #f5f5f5; }
+    .map-ctrl-btn.active { background: #1a2744; color: #d4af37; border-color: #1a2744; }
+
+    /* ─── INDUSTRIAL COMPLEX CHIPS ─── */
+    .complex-chips-wrap {
+      padding: 8px 10px;
+      border-bottom: 1px solid #eee;
+      flex-shrink: 0;
+      background: #fafafa;
+    }
+    .chip {
+      display: inline-block;
+      background: #f0f0f0;
+      border: 1.5px solid #ddd;
+      padding: 4px 9px;
+      border-radius: 14px;
+      font-size: 11px;
+      font-weight: 600;
+      margin: 2px 2px;
+      cursor: pointer;
+      transition: all 0.15s;
+      color: #444;
+    }
+    .chip:hover { background: #e8eefd; border-color: #aac; color: #1a2744; }
+    .chip.active { background: #1a2744; color: #d4af37; border-color: #1a2744; }
+
+    /* ─── TAB 3 SEARCH BAR ─── */
+    .search-bar {
+      background: white;
+      padding: 10px 14px;
+      border-bottom: 1px solid #ddd;
+      display: flex;
+      gap: 8px;
+      flex-shrink: 0;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.08);
+    }
+    .search-bar input {
+      flex: 1;
+      padding: 8px 13px;
+      border: 1.5px solid #d0d5dd;
+      border-radius: 7px;
+      font-size: 13px;
+      outline: none;
+      transition: border 0.2s;
+    }
+    .search-bar input:focus { border-color: #d4af37; }
+    .btn-search {
+      background: #1a2744;
+      color: #d4af37;
+      border: none;
+      padding: 8px 16px;
+      border-radius: 7px;
+      font-size: 13px;
+      font-weight: 700;
+      cursor: pointer;
+      transition: opacity 0.2s;
+    }
+    .btn-search:hover { opacity: 0.85; }
+    .tab3-body { flex: 1; display: flex; overflow: hidden; min-height: 0; }
+
+    /* ─── CSV UPLOAD ─── */
+    .upload-section {
+      padding: 10px 14px;
+      background: #f8faf8;
+      border-bottom: 1px solid #e8eee8;
+      flex-shrink: 0;
+    }
+    .upload-hint { font-size: 10px; color: #888; margin-bottom: 5px; line-height: 1.4; }
+    .btn-upload {
+      display: block;
+      width: 100%;
+      background: #f0f7f0;
+      color: #2e7d32;
+      border: 1.5px dashed #66bb6a;
+      padding: 7px 12px;
+      border-radius: 6px;
+      font-size: 12px;
+      font-weight: 600;
+      cursor: pointer;
+      text-align: center;
+      transition: background 0.15s;
+    }
+    .btn-upload:hover { background: #e8f5e9; }
+
+    /* ─── MODAL ─── */
+    .modal-overlay {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(10,15,30,0.65);
+      z-index: 500;
+      justify-content: center;
+      align-items: center;
+      backdrop-filter: blur(2px);
+    }
+    .modal-overlay.open { display: flex; }
+    .modal {
+      background: white;
+      border-radius: 14px;
+      width: min(94vw, 480px);
+      max-height: 92vh;
+      overflow-y: auto;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+    }
+    .modal-hd {
+      background: linear-gradient(135deg, #1a2744, #243560);
+      color: #d4af37;
+      padding: 16px 20px;
+      border-radius: 14px 14px 0 0;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .modal-hd h3 { font-size: 15px; font-weight: 700; }
+    .modal-close {
+      background: none;
+      border: none;
+      color: #d4af37;
+      font-size: 22px;
+      cursor: pointer;
+      line-height: 1;
+      opacity: 0.8;
+    }
+    .modal-close:hover { opacity: 1; }
+    .modal-bd { padding: 18px 20px; }
+    .modal-ft {
+      padding: 14px 20px;
+      display: flex;
+      gap: 8px;
+      justify-content: flex-end;
+      border-top: 1px solid #eef;
+    }
+
+    /* ─── FORM ─── */
+    .fg { margin-bottom: 13px; }
+    .fg label { display: block; font-size: 11px; font-weight: 700; color: #566; margin-bottom: 5px; text-transform: uppercase; letter-spacing: 0.4px; }
+    .fg input, .fg textarea, .fg select {
+      width: 100%;
+      padding: 9px 12px;
+      border: 1.5px solid #d0d5dd;
+      border-radius: 7px;
+      font-size: 13px;
+      outline: none;
+      transition: border 0.2s, box-shadow 0.2s;
+      background: #fafafa;
+    }
+    .fg input:focus, .fg textarea:focus, .fg select:focus {
+      border-color: #d4af37;
+      background: white;
+      box-shadow: 0 0 0 3px rgba(212,175,55,0.12);
+    }
+    .fg textarea { resize: vertical; min-height: 65px; }
+    .fg-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+    .btn-pri {
+      background: linear-gradient(135deg, #1a2744, #243560);
+      color: #d4af37;
+      border: none;
+      padding: 10px 22px;
+      border-radius: 7px;
+      font-size: 13px;
+      font-weight: 700;
+      cursor: pointer;
+      transition: opacity 0.2s;
+    }
+    .btn-pri:hover { opacity: 0.88; }
+    .btn-sec {
+      background: #f0f1f3;
+      color: #555;
+      border: none;
+      padding: 10px 18px;
+      border-radius: 7px;
+      font-size: 13px;
+      cursor: pointer;
+    }
+    .btn-sec:hover { background: #e5e6e8; }
+
+    /* ─── INFO WINDOW ─── */
+    .iw {
+      background: white;
+      border: 2px solid #1a2744;
+      border-radius: 10px;
+      padding: 12px 15px;
+      min-width: 210px;
+      max-width: 270px;
+      box-shadow: 0 6px 20px rgba(0,0,0,0.2);
+      font-size: 12px;
+    }
+    .iw-title { font-weight: 800; color: #1a2744; font-size: 14px; margin-bottom: 8px; border-bottom: 1px solid #eee; padding-bottom: 6px; }
+    .iw-row { display: flex; gap: 6px; margin-bottom: 4px; }
+    .iw-label { color: #888; min-width: 52px; flex-shrink: 0; }
+    .iw-val { color: #222; font-weight: 500; word-break: break-all; }
+    .iw-link { color: #1558d6; text-decoration: none; font-size: 11px; }
+    .iw-link:hover { text-decoration: underline; }
+    .iw-actions { display: flex; gap: 6px; margin-top: 9px; padding-top: 8px; border-top: 1px solid #eee; }
+
+    /* ─── EMPTY STATE ─── */
+    .empty {
+      padding: 36px 20px;
+      text-align: center;
+      color: #bbb;
+      font-size: 13px;
+      line-height: 1.7;
+    }
+    .empty .ei { font-size: 34px; display: block; margin-bottom: 8px; }
+
+    /* ─── MAP TYPE TOGGLE ─── */
+    .map-type-toggle {
+      position: absolute;
+      top: 10px;
+      right: 10px;
+      z-index: 100;
+      display: flex;
+      background: white;
+      border: 1.5px solid #ddd;
+      border-radius: 7px;
+      overflow: hidden;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+    }
+    .mtt-btn {
+      padding: 7px 13px;
+      font-size: 12px;
+      font-weight: 600;
+      border: none;
+      background: white;
+      color: #555;
+      cursor: pointer;
+      transition: all 0.15s;
+      white-space: nowrap;
+    }
+    .mtt-btn + .mtt-btn { border-left: 1.5px solid #ddd; }
+    .mtt-btn:hover { background: #f5f5f5; }
+    .mtt-btn.active { background: #1a2744; color: #d4af37; }
+
+    /* ─── RESPONSIVE ─── */
+    @media (max-width: 700px) {
+      .tab-content.active:not(#tab-2) { flex-direction: column-reverse; }
+      .panel { width: 100%; height: 220px; border-top: 2px solid #1a2744; }
+      .tab3-body { flex-direction: column-reverse; }
+      .tab3-body .panel { height: 200px; }
+      .header-logo { font-size: 15px; }
+      .btn-shortcut { font-size: 11px; padding: 6px 10px; }
+      .tab-btn { font-size: 11px; padding: 10px 4px; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- ═══ HEADER ═══ -->
+<header class="header">
+  <div class="header-left">
+    <div>
+      <div class="header-logo">🏢 하이탑부동산</div>
+      <div class="header-sub">파주·운정 공인중개사 23년 경력</div>
+    </div>
+  </div>
+  <a href="https://hitoputube-creator.github.io/haitop-realty-system" class="btn-shortcut" target="_blank">하이탑매물관리 →</a>
+</header>
+
+<!-- ═══ TABS ═══ -->
+<nav class="tab-nav">
+  <button class="tab-btn active" onclick="switchTab(0)">헤이리마을</button>
+  <button class="tab-btn" onclick="switchTab(1)">파주 산업단지</button>
+  <button class="tab-btn" onclick="switchTab(2)">운정 단독택지</button>
+</nav>
+
+<!-- ═══ TAB 1: 헤이리마을 ═══ -->
+<section class="tab-content active" id="tab-0">
+  <div class="map-wrap">
+    <div id="map-heyri" class="map-div"></div>
+    <div class="map-controls">
+      <button class="map-ctrl-btn" id="btn-pin-mode" onclick="togglePinMode()">📍 핀 추가</button>
+    </div>
+    <div class="map-type-toggle">
+      <button class="mtt-btn" id="mtt0-road" onclick="setMapType('road')">일반지도</button>
+      <button class="mtt-btn active" id="mtt0-district" onclick="setMapType('district')">지적편집도</button>
+    </div>
+  </div>
+  <aside class="panel">
+    <div class="panel-header">
+      <span>매물 목록<span class="badge" id="cnt-heyri">0</span></span>
+      <button class="btn-add" onclick="openPropModal('heyri')">+ 추가</button>
+    </div>
+    <div class="panel-body" id="list-heyri">
+      <div class="empty"><span class="ei">🏠</span>매물이 없습니다.<br>지도를 클릭해 핀을 추가하세요.</div>
+    </div>
+  </aside>
+</section>
+
+<!-- ═══ TAB 2: 파주 산업단지 ═══ -->
+<section class="tab-content" id="tab-1">
+  <div class="map-wrap">
+    <div id="map-industrial" class="map-div"></div>
+    <div class="map-type-toggle">
+      <button class="mtt-btn" id="mtt1-road" onclick="setMapType('road')">일반지도</button>
+      <button class="mtt-btn active" id="mtt1-district" onclick="setMapType('district')">지적편집도</button>
+    </div>
+  </div>
+  <aside class="panel">
+    <div class="panel-header">
+      <span>산업단지 매물</span>
+      <button class="btn-add" onclick="openPropModal('industrial')">+ 추가</button>
+    </div>
+    <div class="complex-chips-wrap" id="complex-chips"></div>
+    <div class="panel-body" id="list-industrial">
+      <div class="empty"><span class="ei">🏭</span>산업단지를 선택하세요</div>
+    </div>
+  </aside>
+</section>
+
+<!-- ═══ TAB 3: 운정 단독택지 ═══ -->
+<section class="tab-content" id="tab-2">
+  <div class="search-bar">
+    <input type="text" id="addr-input" placeholder="지번 검색 (예: 동패동 2132)"
+           onkeydown="if(event.key==='Enter') searchAddr()">
+    <button class="btn-search" onclick="searchAddr()">🔍 검색</button>
+  </div>
+  <div class="tab3-body">
+    <div class="map-wrap">
+      <div id="map-ungjeong" class="map-div"></div>
+      <div class="map-type-toggle">
+        <button class="mtt-btn" id="mtt2-road" onclick="setMapType('road')">일반지도</button>
+        <button class="mtt-btn active" id="mtt2-district" onclick="setMapType('district')">지적편집도</button>
+      </div>
+    </div>
+    <aside class="panel">
+      <div class="panel-header">
+        <span>필지 목록<span class="badge" id="cnt-ungjeong">0</span></span>
+        <button class="btn-add" onclick="openPlotModal()">+ 추가</button>
+      </div>
+      <div class="upload-section">
+        <div class="upload-hint">CSV 형식: 지번,면적,공급단가,공급금액,건폐율,용적률,메모</div>
+        <input type="file" id="csv-file" accept=".csv" style="display:none" onchange="handleCSV(this)">
+        <button class="btn-upload" onclick="document.getElementById('csv-file').click()">📂 CSV 파일 업로드</button>
+      </div>
+      <div class="panel-body" id="list-ungjeong">
+        <div class="empty"><span class="ei">🏘</span>등록된 필지가 없습니다.</div>
+      </div>
+    </aside>
+  </div>
+</section>
+
+<!-- ═══ MODAL: 매물 (헤이리 / 산업단지) ═══ -->
+<div class="modal-overlay" id="modal-prop" onclick="closeOnBg(event,'modal-prop')">
+  <div class="modal">
+    <div class="modal-hd">
+      <h3 id="modal-prop-title">매물 추가</h3>
+      <button class="modal-close" onclick="closeModal('modal-prop')">×</button>
+    </div>
+    <div class="modal-bd">
+      <input type="hidden" id="p-id">
+      <input type="hidden" id="p-tab">
+      <input type="hidden" id="p-lat">
+      <input type="hidden" id="p-lng">
+      <div class="fg" id="fg-complex">
+        <label>산업단지</label>
+        <select id="p-complex"><option value="">선택하세요</option></select>
+      </div>
+      <div class="fg-row">
+        <div class="fg">
+          <label>지번 *</label>
+          <input type="text" id="p-jibun" placeholder="예: 헤이리마을 산83-1">
+        </div>
+        <div class="fg">
+          <label>면적 (㎡)</label>
+          <input type="text" id="p-area" placeholder="예: 330">
+        </div>
+      </div>
+      <div class="fg-row">
+        <div class="fg">
+          <label>매매가</label>
+          <input type="text" id="p-sale" placeholder="예: 5억">
+        </div>
+        <div class="fg">
+          <label>임대가 (전/월)</label>
+          <input type="text" id="p-rent" placeholder="예: 보증500/월50">
+        </div>
+      </div>
+      <div class="fg">
+        <label>용도</label>
+        <select id="p-use">
+          <option value="">선택</option>
+          <option>근린생활시설</option>
+          <option>업무시설</option>
+          <option>공장</option>
+          <option>창고</option>
+          <option>토지</option>
+          <option>주거</option>
+          <option>기타</option>
+        </select>
+      </div>
+      <div class="fg">
+        <label>메모</label>
+        <textarea id="p-memo" placeholder="매물 특이사항 등"></textarea>
+      </div>
+      <div class="fg">
+        <label>네이버 매물 링크</label>
+        <input type="url" id="p-naver" placeholder="https://...">
+      </div>
+    </div>
+    <div class="modal-ft">
+      <button class="btn-sec" onclick="closeModal('modal-prop')">취소</button>
+      <button class="btn-pri" onclick="saveProp()">저장</button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ MODAL: 필지 (운정) ═══ -->
+<div class="modal-overlay" id="modal-plot" onclick="closeOnBg(event,'modal-plot')">
+  <div class="modal">
+    <div class="modal-hd">
+      <h3 id="modal-plot-title">필지 추가</h3>
+      <button class="modal-close" onclick="closeModal('modal-plot')">×</button>
+    </div>
+    <div class="modal-bd">
+      <input type="hidden" id="pl-id">
+      <input type="hidden" id="pl-lat">
+      <input type="hidden" id="pl-lng">
+      <div class="fg">
+        <label>지번 *</label>
+        <input type="text" id="pl-jibun" placeholder="예: 동패동 2132">
+      </div>
+      <div class="fg-row">
+        <div class="fg">
+          <label>면적 (㎡)</label>
+          <input type="text" id="pl-area" placeholder="예: 165.0">
+        </div>
+        <div class="fg">
+          <label>공급단가 (원/㎡)</label>
+          <input type="text" id="pl-unit" placeholder="예: 2,500,000" oninput="calcTotal()">
+        </div>
+      </div>
+      <div class="fg-row">
+        <div class="fg">
+          <label>공급금액</label>
+          <input type="text" id="pl-total" placeholder="자동계산">
+        </div>
+        <div class="fg">
+          <label>건폐율</label>
+          <input type="text" id="pl-bcr" placeholder="예: 60%">
+        </div>
+      </div>
+      <div class="fg">
+        <label>용적률</label>
+        <input type="text" id="pl-far" placeholder="예: 150%">
+      </div>
+      <div class="fg">
+        <label>메모</label>
+        <textarea id="pl-memo" placeholder="필지 특이사항 등"></textarea>
+      </div>
+    </div>
+    <div class="modal-ft">
+      <button class="btn-sec" onclick="closeModal('modal-plot')">취소</button>
+      <button class="btn-pri" onclick="savePlot()">저장</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ════════════════════════════════════════════
+// ■ STORAGE
+// ════════════════════════════════════════════
+const DB = {
+  get: k => JSON.parse(localStorage.getItem(k) || '[]'),
+  set: (k, v) => localStorage.setItem(k, JSON.stringify(v)),
+};
+
+// ════════════════════════════════════════════
+// ■ MAP TYPE
+// ════════════════════════════════════════════
+let currentMapType = 'district'; // 기본값: 지적편집도
+
+function setMapType(type) {
+  currentMapType = type;
+  // 버튼 상태 업데이트 (모든 탭)
+  [0,1,2].forEach(i => {
+    const road = document.getElementById(`mtt${i}-road`);
+    const dist = document.getElementById(`mtt${i}-district`);
+    if (road) road.classList.toggle('active', type === 'road');
+    if (dist) dist.classList.toggle('active', type === 'district');
+  });
+  // 초기화된 모든 지도에 적용
+  maps.forEach(map => {
+    if (!map) return;
+    if (type === 'district') {
+      map.addOverlayMapTypeId(kakao.maps.MapTypeId.USE_DISTRICT);
+    } else {
+      map.removeOverlayMapTypeId(kakao.maps.MapTypeId.USE_DISTRICT);
+    }
+  });
+}
+
+function applyDefaultMapType(map) {
+  if (currentMapType === 'district') {
+    map.addOverlayMapTypeId(kakao.maps.MapTypeId.USE_DISTRICT);
+  }
+}
+
+// ════════════════════════════════════════════
+// ■ TAB SWITCHING
+// ════════════════════════════════════════════
+const mapInited = [false, false, false];
+const maps = [null, null, null];
+let activeTab = 0;
+let kakaoReady = false;
+
+function switchTab(i) {
+  document.querySelectorAll('.tab-btn').forEach((b, j) => b.classList.toggle('active', i === j));
+  document.querySelectorAll('.tab-content').forEach((c, j) => c.classList.toggle('active', i === j));
+  activeTab = i;
+  if (!kakaoReady) return;
+  setTimeout(() => {
+    if (!mapInited[i]) { initMap(i); mapInited[i] = true; }
+    else if (maps[i]) kakao.maps.event.trigger(maps[i], 'resize');
+  }, 60);
+}
+
+// ════════════════════════════════════════════
+// ■ MAP INIT
+// ════════════════════════════════════════════
+const MAP_CFG = [
+  { el: 'map-heyri',      lat: 37.7929, lng: 126.6856, lv: 4 },
+  { el: 'map-industrial', lat: 37.7601, lng: 126.7800, lv: 8 },
+  { el: 'map-ungjeong',   lat: 37.7108, lng: 126.7890, lv: 5 },
+];
+
+function initMap(i) {
+  const cfg = MAP_CFG[i];
+  maps[i] = new kakao.maps.Map(document.getElementById(cfg.el), {
+    center: new kakao.maps.LatLng(cfg.lat, cfg.lng),
+    level: cfg.lv,
+  });
+  applyDefaultMapType(maps[i]);
+  if (i === 0) setupHeyri();
+  else if (i === 1) setupIndustrial();
+  else setupUngjeong();
+}
+
+// ════════════════════════════════════════════
+// ■ TAB 1 — 헤이리마을
+// ════════════════════════════════════════════
+let pinMode = false;
+let heyriMks = {};
+let openIW = null;
+
+function setupHeyri() {
+  renderHeyriList();
+  renderHeyriMarkers();
+  kakao.maps.event.addListener(maps[0], 'click', e => {
+    if (!pinMode) return;
+    const ll = e.latLng;
+    togglePinMode(false);
+    openPropModal('heyri', ll.getLat(), ll.getLng());
+  });
+}
+
+function togglePinMode(force) {
+  pinMode = force !== undefined ? force : !pinMode;
+  const btn = document.getElementById('btn-pin-mode');
+  if (pinMode) {
+    btn.classList.add('active');
+    btn.textContent = '📍 클릭하여 배치';
+    maps[0].setCursor('crosshair');
+  } else {
+    btn.classList.remove('active');
+    btn.textContent = '📍 핀 추가';
+    maps[0].setCursor('');
+  }
+}
+
+function renderHeyriMarkers() {
+  Object.values(heyriMks).forEach(m => m.setMap(null));
+  heyriMks = {};
+  DB.get('heyri').forEach(p => {
+    if (p.lat && p.lng) heyriMks[p.id] = addPropMarker(maps[0], p, 'heyri');
+  });
+}
+
+function addPropMarker(map, p, tab) {
+  const mk = new kakao.maps.Marker({ position: new kakao.maps.LatLng(p.lat, p.lng), map });
+  const iw = new kakao.maps.InfoWindow({ content: buildIWContent(p, tab), removable: false });
+  kakao.maps.event.addListener(mk, 'click', () => {
+    if (openIW) openIW.close();
+    iw.open(map, mk);
+    openIW = iw;
+  });
+  return mk;
+}
+
+function buildIWContent(p, tab) {
+  const rows = [
+    p.area    ? `<div class="iw-row"><span class="iw-label">면적</span><span class="iw-val">${p.area}㎡</span></div>` : '',
+    p.sale    ? `<div class="iw-row"><span class="iw-label">매매가</span><span class="iw-val">${p.sale}</span></div>` : '',
+    p.rent    ? `<div class="iw-row"><span class="iw-label">임대가</span><span class="iw-val">${p.rent}</span></div>` : '',
+    p.use     ? `<div class="iw-row"><span class="iw-label">용도</span><span class="iw-val">${p.use}</span></div>` : '',
+    p.memo    ? `<div class="iw-row"><span class="iw-label">메모</span><span class="iw-val">${escHtml(p.memo)}</span></div>` : '',
+    p.naver   ? `<div class="iw-row"><a class="iw-link" href="${p.naver}" target="_blank">📎 네이버 매물 보기 →</a></div>` : '',
+  ].join('');
+  return `<div class="iw">
+    <div class="iw-title">📍 ${escHtml(p.jibun || '매물')}</div>
+    ${rows}
+    <div class="iw-actions">
+      <button class="btn-e" onclick="editProp('${p.id}','${tab}')">수정</button>
+      <button class="btn-d" onclick="delProp('${p.id}','${tab}')">삭제</button>
+    </div>
+  </div>`;
+}
+
+function renderHeyriList() {
+  const data = DB.get('heyri');
+  document.getElementById('cnt-heyri').textContent = data.length;
+  const el = document.getElementById('list-heyri');
+  if (!data.length) {
+    el.innerHTML = '<div class="empty"><span class="ei">🏠</span>매물이 없습니다.<br>지도를 클릭해 핀을 추가하세요.</div>';
+    return;
+  }
+  el.innerHTML = data.map(p => `
+    <div class="prop-card" onclick="focusProp('${p.id}','heyri')">
+      <div class="c-addr">📍 ${escHtml(p.jibun || '(지번 없음)')}</div>
+      ${p.sale ? `<div class="c-price">매매 ${escHtml(p.sale)}</div>` : ''}
+      ${p.rent ? `<div class="c-price">임대 ${escHtml(p.rent)}</div>` : ''}
+      <div class="c-use">${p.use || ''}${p.area ? (p.use ? ' · ' : '') + p.area + '㎡' : ''}</div>
+      <div class="card-actions">
+        <button class="btn-e" onclick="event.stopPropagation();editProp('${p.id}','heyri')">수정</button>
+        <button class="btn-d" onclick="event.stopPropagation();delProp('${p.id}','heyri')">삭제</button>
+      </div>
+    </div>`).join('');
+}
+
+function focusProp(id, tab) {
+  const p = DB.get(tab).find(x => x.id === id);
+  if (!p || !p.lat) return;
+  const mi = tab === 'heyri' ? 0 : 1;
+  if (!maps[mi]) return;
+  maps[mi].setCenter(new kakao.maps.LatLng(p.lat, p.lng));
+  maps[mi].setLevel(3);
+  const mk = tab === 'heyri' ? heyriMks[id] : null;
+  if (mk) kakao.maps.event.trigger(mk, 'click');
+}
+
+// ════════════════════════════════════════════
+// ■ TAB 2 — 파주 산업단지
+// ════════════════════════════════════════════
+const COMPLEXES = [
+  { id: 'tanhyeon-nat',  name: '탄현국가산업단지',  lat: 37.7980, lng: 126.6855 },
+  { id: 'seongdong',     name: '성동리산업단지',     lat: 37.8118, lng: 126.7050 },
+  { id: 'tanhyeon-gen',  name: '탄현일반산업단지',   lat: 37.7920, lng: 126.6985 },
+  { id: 'chukbyeon',     name: '축현일반산업단지',    lat: 37.8015, lng: 126.7210 },
+  { id: 'dangdong',      name: '당동일반산업단지',    lat: 37.7248, lng: 126.7455 },
+  { id: 'weollong',      name: '월롱일반산업단지',    lat: 37.7525, lng: 126.7540 },
+  { id: 'seonyu',        name: '선유일반산업단지',    lat: 37.7805, lng: 126.8095 },
+  { id: 'beobwon',       name: '법원일반산업단지',    lat: 37.8248, lng: 126.8215 },
+  { id: 'munbal',        name: '문발일반산업단지',    lat: 37.7105, lng: 126.8058 },
+  { id: 'pajupub',       name: '파주출판산업단지',    lat: 37.7050, lng: 126.7785 },
+  { id: 'osan',          name: '오산일반산업단지',    lat: 37.7405, lng: 126.8348 },
+];
+
+let selComplex = null;
+let indMks = {};
+
+function setupIndustrial() {
+  renderComplexChips();
+  COMPLEXES.forEach(c => {
+    const mk = new kakao.maps.Marker({
+      position: new kakao.maps.LatLng(c.lat, c.lng),
+      map: maps[1],
+      title: c.name,
+    });
+    new kakao.maps.CustomOverlay({
+      position: new kakao.maps.LatLng(c.lat, c.lng),
+      content: `<div style="background:#1a2744;color:#d4af37;border:1px solid #d4af37;padding:3px 8px;border-radius:4px;font-size:10px;font-weight:700;white-space:nowrap;transform:translateY(-44px);box-shadow:0 2px 6px rgba(0,0,0,0.25)">${c.name}</div>`,
+      yAnchor: 1,
+      map: maps[1],
+    });
+    kakao.maps.event.addListener(mk, 'click', () => {
+      selectComplex(c.id);
+      maps[1].panTo(new kakao.maps.LatLng(c.lat, c.lng));
+      maps[1].setLevel(5);
+    });
+    indMks[c.id] = mk;
+  });
+}
+
+function renderComplexChips() {
+  document.getElementById('complex-chips').innerHTML =
+    COMPLEXES.map(c => `<span class="chip${selComplex===c.id?' active':''}" onclick="selectComplex('${c.id}')">${c.name}</span>`).join('');
+}
+
+function selectComplex(id) {
+  selComplex = id;
+  renderComplexChips();
+  renderIndustrialList();
+  const c = COMPLEXES.find(x => x.id === id);
+  if (c && maps[1]) { maps[1].panTo(new kakao.maps.LatLng(c.lat, c.lng)); maps[1].setLevel(5); }
+}
+
+function renderIndustrialList() {
+  const el = document.getElementById('list-industrial');
+  if (!selComplex) {
+    el.innerHTML = '<div class="empty"><span class="ei">🏭</span>산업단지를 선택하세요</div>';
+    return;
+  }
+  const cx = COMPLEXES.find(x => x.id === selComplex);
+  const data = DB.get('industrial').filter(p => p.complex === selComplex);
+  if (!data.length) {
+    el.innerHTML = `<div class="empty"><span class="ei">📋</span><strong>${cx.name}</strong><br>등록된 매물이 없습니다.</div>`;
+    return;
+  }
+  el.innerHTML = data.map(p => `
+    <div class="prop-card">
+      <div class="c-addr">📍 ${escHtml(p.jibun || '(지번 없음)')}</div>
+      ${p.sale ? `<div class="c-price">매매 ${escHtml(p.sale)}</div>` : ''}
+      ${p.rent ? `<div class="c-price">임대 ${escHtml(p.rent)}</div>` : ''}
+      <div class="c-use">${p.use || ''}${p.area ? (p.use ? ' · ' : '') + p.area + '㎡' : ''}</div>
+      <div class="card-actions">
+        <button class="btn-e" onclick="editProp('${p.id}','industrial')">수정</button>
+        <button class="btn-d" onclick="delProp('${p.id}','industrial')">삭제</button>
+      </div>
+    </div>`).join('');
+}
+
+// ════════════════════════════════════════════
+// ■ TAB 3 — 운정 단독택지
+// ════════════════════════════════════════════
+let geocoder;
+let ungMks = {};
+
+function setupUngjeong() {
+  geocoder = new kakao.maps.services.Geocoder();
+  renderUngjeongList();
+  renderUngjeongMarkers();
+}
+
+function searchAddr() {
+  const raw = document.getElementById('addr-input').value.trim();
+  if (!raw) return;
+  const q = /파주|경기/.test(raw) ? raw : '경기 파주시 ' + raw;
+  geocoder.addressSearch(q, (res, status) => {
+    if (status !== kakao.maps.services.Status.OK) {
+      alert('주소를 찾을 수 없습니다. 다시 확인해주세요.');
+      return;
+    }
+    const lat = parseFloat(res[0].y), lng = parseFloat(res[0].x);
+    maps[2].setCenter(new kakao.maps.LatLng(lat, lng));
+    maps[2].setLevel(3);
+    const existing = DB.get('ungjeong').find(p => p.jibun === raw);
+    if (existing) {
+      if (ungMks[existing.id]) kakao.maps.event.trigger(ungMks[existing.id], 'click');
+      alert(`[${raw}] 이미 등록된 필지입니다.`);
+    } else {
+      openPlotModal(lat, lng, raw);
+    }
+  });
+}
+
+function renderUngjeongMarkers() {
+  Object.values(ungMks).forEach(m => m.setMap(null));
+  ungMks = {};
+  DB.get('ungjeong').forEach(p => {
+    if (!p.lat || !p.lng) return;
+    const mk = new kakao.maps.Marker({ position: new kakao.maps.LatLng(p.lat, p.lng), map: maps[2] });
+    const iw = new kakao.maps.InfoWindow({ content: buildPlotIW(p), removable: false });
+    kakao.maps.event.addListener(mk, 'click', () => {
+      if (openIW) openIW.close();
+      iw.open(maps[2], mk);
+      openIW = iw;
+    });
+    ungMks[p.id] = mk;
+  });
+}
+
+function buildPlotIW(p) {
+  return `<div class="iw">
+    <div class="iw-title">🏘 ${escHtml(p.jibun || '필지')}</div>
+    ${p.area      ? `<div class="iw-row"><span class="iw-label">면적</span><span class="iw-val">${p.area}㎡</span></div>` : ''}
+    ${p.unitPrice ? `<div class="iw-row"><span class="iw-label">공급단가</span><span class="iw-val">${p.unitPrice}원/㎡</span></div>` : ''}
+    ${p.totalPrice? `<div class="iw-row"><span class="iw-label">공급금액</span><span class="iw-val">${p.totalPrice}</span></div>` : ''}
+    ${p.bcr       ? `<div class="iw-row"><span class="iw-label">건폐율</span><span class="iw-val">${p.bcr}</span></div>` : ''}
+    ${p.far       ? `<div class="iw-row"><span class="iw-label">용적률</span><span class="iw-val">${p.far}</span></div>` : ''}
+    ${p.memo      ? `<div class="iw-row"><span class="iw-label">메모</span><span class="iw-val">${escHtml(p.memo)}</span></div>` : ''}
+    <div class="iw-actions">
+      <button class="btn-e" onclick="editPlot('${p.id}')">수정</button>
+      <button class="btn-d" onclick="delPlot('${p.id}')">삭제</button>
+    </div>
+  </div>`;
+}
+
+function renderUngjeongList() {
+  const data = DB.get('ungjeong');
+  document.getElementById('cnt-ungjeong').textContent = data.length;
+  const el = document.getElementById('list-ungjeong');
+  if (!data.length) {
+    el.innerHTML = '<div class="empty"><span class="ei">🏘</span>등록된 필지가 없습니다.</div>';
+    return;
+  }
+  el.innerHTML = data.map(p => `
+    <div class="prop-card" onclick="focusPlot('${p.id}')">
+      <div class="c-addr">📍 ${escHtml(p.jibun || '(지번 없음)')}</div>
+      <div class="c-use">
+        ${[p.area && p.area+'㎡', p.totalPrice, p.bcr && '건폐율'+p.bcr, p.far && '용적률'+p.far].filter(Boolean).join(' · ')}
+      </div>
+      ${p.memo ? `<div class="c-use" style="color:#777;margin-top:2px">${escHtml(p.memo)}</div>` : ''}
+      <div class="card-actions">
+        <button class="btn-e" onclick="event.stopPropagation();editPlot('${p.id}')">수정</button>
+        <button class="btn-d" onclick="event.stopPropagation();delPlot('${p.id}')">삭제</button>
+      </div>
+    </div>`).join('');
+}
+
+function focusPlot(id) {
+  const p = DB.get('ungjeong').find(x => x.id === id);
+  if (!p || !p.lat) return;
+  maps[2].setCenter(new kakao.maps.LatLng(p.lat, p.lng));
+  maps[2].setLevel(3);
+  if (ungMks[id]) kakao.maps.event.trigger(ungMks[id], 'click');
+}
+
+function handleCSV(input) {
+  const file = input.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = e => {
+    const lines = e.target.result.split(/\r?\n/);
+    const plots = DB.get('ungjeong');
+    let added = 0;
+    for (let i = 1; i < lines.length; i++) {
+      const cols = lines[i].split(',').map(s => s.trim().replace(/^"|"$/g, ''));
+      if (!cols[0]) continue;
+      plots.push({
+        id: 'pl_' + Date.now() + '_' + i,
+        jibun: cols[0] || '', area: cols[1] || '',
+        unitPrice: cols[2] || '', totalPrice: cols[3] || '',
+        bcr: cols[4] || '', far: cols[5] || '',
+        memo: cols[6] || '', lat: null, lng: null,
+      });
+      added++;
+    }
+    DB.set('ungjeong', plots);
+    renderUngjeongList();
+    alert(`✅ ${added}개 필지가 업로드되었습니다.`);
+  };
+  reader.readAsText(file, 'UTF-8');
+  input.value = '';
+}
+
+function calcTotal() {
+  const area = parseFloat(document.getElementById('pl-area').value.replace(/,/g, ''));
+  const unit = parseFloat(document.getElementById('pl-unit').value.replace(/,/g, ''));
+  if (!isNaN(area) && !isNaN(unit)) {
+    const total = area * unit;
+    document.getElementById('pl-total').value = Math.round(total).toLocaleString() + '원';
+  }
+}
+
+// ════════════════════════════════════════════
+// ■ MODAL — 매물 (헤이리 / 산업단지)
+// ════════════════════════════════════════════
+function openPropModal(tab, lat, lng) {
+  setVal('p-id', ''); setVal('p-tab', tab);
+  setVal('p-lat', lat || ''); setVal('p-lng', lng || '');
+  setVal('p-jibun', ''); setVal('p-area', ''); setVal('p-sale', '');
+  setVal('p-rent', ''); setVal('p-use', ''); setVal('p-memo', ''); setVal('p-naver', '');
+  document.getElementById('modal-prop-title').textContent = tab === 'heyri' ? '헤이리 매물 추가' : '산업단지 매물 추가';
+  const fg = document.getElementById('fg-complex');
+  if (tab === 'industrial') {
+    fg.style.display = '';
+    const sel = document.getElementById('p-complex');
+    sel.innerHTML = '<option value="">선택하세요</option>' +
+      COMPLEXES.map(c => `<option value="${c.id}">${c.name}</option>`).join('');
+    if (selComplex) sel.value = selComplex;
+  } else fg.style.display = 'none';
+  openModal('modal-prop');
+}
+
+function editProp(id, tab) {
+  const p = DB.get(tab).find(x => x.id === id);
+  if (!p) return;
+  setVal('p-id', p.id); setVal('p-tab', tab);
+  setVal('p-lat', p.lat || ''); setVal('p-lng', p.lng || '');
+  setVal('p-jibun', p.jibun || ''); setVal('p-area', p.area || '');
+  setVal('p-sale', p.sale || ''); setVal('p-rent', p.rent || '');
+  setVal('p-use', p.use || ''); setVal('p-memo', p.memo || '');
+  setVal('p-naver', p.naver || '');
+  document.getElementById('modal-prop-title').textContent = '매물 수정';
+  const fg = document.getElementById('fg-complex');
+  if (tab === 'industrial') {
+    fg.style.display = '';
+    const sel = document.getElementById('p-complex');
+    sel.innerHTML = '<option value="">선택하세요</option>' +
+      COMPLEXES.map(c => `<option value="${c.id}">${c.name}</option>`).join('');
+    sel.value = p.complex || '';
+  } else fg.style.display = 'none';
+  openModal('modal-prop');
+}
+
+function saveProp() {
+  const jibun = gv('p-jibun');
+  if (!jibun) { alert('지번을 입력해주세요.'); return; }
+  const tab = gv('p-tab');
+  const id = gv('p-id');
+  const prop = {
+    id: id || 'prop_' + Date.now(),
+    complex: gv('p-complex'), jibun,
+    area: gv('p-area'), sale: gv('p-sale'),
+    rent: gv('p-rent'), use: gv('p-use'),
+    memo: gv('p-memo'), naver: gv('p-naver'),
+    lat: parseFloat(gv('p-lat')) || null,
+    lng: parseFloat(gv('p-lng')) || null,
+  };
+  const data = DB.get(tab);
+  if (id) { const i = data.findIndex(x => x.id === id); if (i >= 0) data[i] = prop; }
+  else data.push(prop);
+  DB.set(tab, data);
+  closeModal('modal-prop');
+  if (tab === 'heyri') { renderHeyriList(); if (mapInited[0]) renderHeyriMarkers(); }
+  else renderIndustrialList();
+}
+
+function delProp(id, tab) {
+  if (!confirm('매물을 삭제하시겠습니까?')) return;
+  DB.set(tab, DB.get(tab).filter(x => x.id !== id));
+  if (tab === 'heyri') {
+    if (heyriMks[id]) { heyriMks[id].setMap(null); delete heyriMks[id]; }
+    renderHeyriList();
+  } else renderIndustrialList();
+  if (openIW) { openIW.close(); openIW = null; }
+}
+
+// ════════════════════════════════════════════
+// ■ MODAL — 필지 (운정)
+// ════════════════════════════════════════════
+function openPlotModal(lat, lng, jibun) {
+  setVal('pl-id', ''); setVal('pl-lat', lat || ''); setVal('pl-lng', lng || '');
+  setVal('pl-jibun', jibun || ''); setVal('pl-area', ''); setVal('pl-unit', '');
+  setVal('pl-total', ''); setVal('pl-bcr', ''); setVal('pl-far', ''); setVal('pl-memo', '');
+  document.getElementById('modal-plot-title').textContent = '필지 추가';
+  openModal('modal-plot');
+}
+
+function editPlot(id) {
+  const p = DB.get('ungjeong').find(x => x.id === id);
+  if (!p) return;
+  setVal('pl-id', p.id); setVal('pl-lat', p.lat || ''); setVal('pl-lng', p.lng || '');
+  setVal('pl-jibun', p.jibun || ''); setVal('pl-area', p.area || '');
+  setVal('pl-unit', p.unitPrice || ''); setVal('pl-total', p.totalPrice || '');
+  setVal('pl-bcr', p.bcr || ''); setVal('pl-far', p.far || ''); setVal('pl-memo', p.memo || '');
+  document.getElementById('modal-plot-title').textContent = '필지 수정';
+  openModal('modal-plot');
+}
+
+function savePlot() {
+  const jibun = gv('pl-jibun');
+  if (!jibun) { alert('지번을 입력해주세요.'); return; }
+  const id = gv('pl-id');
+  const plot = {
+    id: id || 'pl_' + Date.now(),
+    jibun, area: gv('pl-area'), unitPrice: gv('pl-unit'),
+    totalPrice: gv('pl-total'), bcr: gv('pl-bcr'),
+    far: gv('pl-far'), memo: gv('pl-memo'),
+    lat: parseFloat(gv('pl-lat')) || null,
+    lng: parseFloat(gv('pl-lng')) || null,
+  };
+  const data = DB.get('ungjeong');
+  if (id) { const i = data.findIndex(x => x.id === id); if (i >= 0) data[i] = plot; }
+  else data.push(plot);
+  DB.set('ungjeong', data);
+  closeModal('modal-plot');
+  renderUngjeongList();
+  if (mapInited[2]) renderUngjeongMarkers();
+}
+
+function delPlot(id) {
+  if (!confirm('필지를 삭제하시겠습니까?')) return;
+  DB.set('ungjeong', DB.get('ungjeong').filter(x => x.id !== id));
+  if (ungMks[id]) { ungMks[id].setMap(null); delete ungMks[id]; }
+  renderUngjeongList();
+  if (openIW) { openIW.close(); openIW = null; }
+}
+
+// ════════════════════════════════════════════
+// ■ HELPERS
+// ════════════════════════════════════════════
+const gv = id => document.getElementById(id).value.trim();
+const setVal = (id, v) => { document.getElementById(id).value = v; };
+const openModal = id => document.getElementById(id).classList.add('open');
+const closeModal = id => document.getElementById(id).classList.remove('open');
+const closeOnBg = (e, id) => { if (e.target === e.currentTarget) closeModal(id); };
+function escHtml(s) {
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+// ════════════════════════════════════════════
+// ■ INIT
+// ════════════════════════════════════════════
+function showMapError(reason) {
+  console.error('[하이탑맵] 카카오맵 로드 실패 ▶', reason);
+  ['map-heyri','map-industrial','map-ungjeong'].forEach(id => {
+    const wrap = document.getElementById(id)?.parentElement;
+    if (!wrap || wrap.querySelector('.map-error')) return;
+    const div = document.createElement('div');
+    div.className = 'map-error';
+    div.innerHTML = `
+      <div class="me-icon">🗺️</div>
+      <h3>카카오맵을 불러올 수 없습니다</h3>
+      <p>
+        카카오 개발자 콘솔 → 앱 > 일반 → 플랫폼 → Web<br>
+        사이트 도메인에 아래 주소를 추가하세요:<br><br>
+        <code>http://localhost:3456</code><br>
+        <code>https://hitoputube-creator.github.io</code><br><br>
+        <small style="color:#999">오류 코드: ${reason}</small>
+      </p>
+    `;
+    wrap.appendChild(div);
+  });
+}
+
+window.addEventListener('load', () => {
+  console.log('[하이탑맵] ① window.load - typeof kakao:', typeof kakao);
+
+  if (typeof kakao === 'undefined' || typeof kakao.maps === 'undefined') {
+    console.error('[하이탑맵] ✗ kakao 로드 실패 - 카카오 개발자 콘솔에서 도메인 등록 필요');
+    showMapError('kakao undefined');
+    return;
+  }
+
+  console.log('[하이탑맵] ② kakao.maps 로드 성공 - 지도 초기화 시작');
+  kakaoReady = true;
+  initMap(0);
+  mapInited[0] = true;
+  console.log('[하이탑맵] ③ 헤이리마을 지도 초기화 완료');
+});
+</script>
+</body>
+</html>
