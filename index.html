@@ -4,7 +4,8 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>하이탑부동산 지도앱</title>
-  <script type="text/javascript" src="//dapi.kakao.com/v2/maps/sdk.js?appkey=994972e516397c11f34cc65482c89f96&libraries=services"></script>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
@@ -70,30 +71,65 @@
     .tab-btn.active { color: #d4af37; border-bottom-color: #d4af37; background: rgba(212,175,55,0.1); }
 
     /* ─── TAB CONTENT ─── */
-    .tab-content {
-      display: none;
-      flex: 1;
-      overflow: hidden;
-    }
+    .tab-content { display: none; flex: 1; overflow: hidden; }
     .tab-content.active { display: flex; }
     #tab-2.active { flex-direction: column; }
 
     /* ─── MAP ─── */
     .map-wrap { flex: 1; position: relative; min-height: 0; }
-    .map-div { width: 100%; height: 100%; min-height: calc(100vh - 200px); background: #e8edf0; }
+    .map-div { width: 100%; height: 100%; min-height: calc(100vh - 200px); }
 
-    /* ─── MAP ERROR OVERLAY ─── */
-    .map-error {
-      position: absolute; inset: 0; z-index: 200;
-      display: flex; flex-direction: column;
-      align-items: center; justify-content: center;
-      background: #f5f7fa; text-align: center; padding: 24px;
+    /* ─── MAP TYPE TOGGLE ─── */
+    .map-type-toggle {
+      position: absolute;
+      top: 10px;
+      right: 10px;
+      z-index: 1000;
+      display: flex;
+      background: white;
+      border: 1.5px solid #ddd;
+      border-radius: 7px;
+      overflow: hidden;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.15);
     }
-    .map-error .me-icon { font-size: 40px; margin-bottom: 12px; }
-    .map-error h3 { color: #1a2744; font-size: 15px; margin-bottom: 8px; }
-    .map-error p { color: #666; font-size: 12px; line-height: 1.7; }
-    .map-error code { background: #eee; padding: 2px 6px; border-radius: 4px; font-size: 11px; }
-    .map-error a { color: #1558d6; }
+    .mtt-btn {
+      padding: 7px 13px;
+      font-size: 12px;
+      font-weight: 600;
+      border: none;
+      background: white;
+      color: #555;
+      cursor: pointer;
+      transition: all 0.15s;
+      white-space: nowrap;
+    }
+    .mtt-btn + .mtt-btn { border-left: 1.5px solid #ddd; }
+    .mtt-btn:hover { background: #f5f5f5; }
+    .mtt-btn.active { background: #1a2744; color: #d4af37; }
+
+    /* ─── MAP CONTROLS ─── */
+    .map-controls {
+      position: absolute;
+      top: 10px;
+      left: 10px;
+      z-index: 1000;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+    .map-ctrl-btn {
+      background: white;
+      border: 1.5px solid #ddd;
+      padding: 8px 14px;
+      border-radius: 7px;
+      font-size: 12px;
+      font-weight: 600;
+      cursor: pointer;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+      transition: all 0.15s;
+    }
+    .map-ctrl-btn:hover { background: #f5f5f5; }
+    .map-ctrl-btn.active { background: #1a2744; color: #d4af37; border-color: #1a2744; }
 
     /* ─── SIDEBAR / PANEL ─── */
     .panel {
@@ -140,7 +176,7 @@
     }
     .btn-add:hover { opacity: 0.85; }
 
-    /* ─── PROPERTY / PLOT CARDS ─── */
+    /* ─── PROPERTY CARDS ─── */
     .prop-card {
       padding: 12px 14px;
       border-bottom: 1px solid #eef0f4;
@@ -156,30 +192,6 @@
     .btn-d { background: #fce8e6; color: #c62828; border: none; padding: 3px 9px; border-radius: 4px; font-size: 11px; cursor: pointer; }
     .btn-e:hover { background: #d2e3fc; }
     .btn-d:hover { background: #f8d7d4; }
-
-    /* ─── MAP CONTROLS ─── */
-    .map-controls {
-      position: absolute;
-      top: 10px;
-      left: 10px;
-      z-index: 100;
-      display: flex;
-      flex-direction: column;
-      gap: 6px;
-    }
-    .map-ctrl-btn {
-      background: white;
-      border: 1.5px solid #ddd;
-      padding: 8px 14px;
-      border-radius: 7px;
-      font-size: 12px;
-      font-weight: 600;
-      cursor: pointer;
-      box-shadow: 0 2px 8px rgba(0,0,0,0.15);
-      transition: all 0.15s;
-    }
-    .map-ctrl-btn:hover { background: #f5f5f5; }
-    .map-ctrl-btn.active { background: #1a2744; color: #d4af37; border-color: #1a2744; }
 
     /* ─── INDUSTRIAL COMPLEX CHIPS ─── */
     .complex-chips-wrap {
@@ -233,9 +245,7 @@
       font-size: 13px;
       font-weight: 700;
       cursor: pointer;
-      transition: opacity 0.2s;
     }
-    .btn-search:hover { opacity: 0.85; }
     .tab3-body { flex: 1; display: flex; overflow: hidden; min-height: 0; }
 
     /* ─── CSV UPLOAD ─── */
@@ -258,7 +268,6 @@
       font-weight: 600;
       cursor: pointer;
       text-align: center;
-      transition: background 0.15s;
     }
     .btn-upload:hover { background: #e8f5e9; }
 
@@ -268,7 +277,7 @@
       position: fixed;
       inset: 0;
       background: rgba(10,15,30,0.65);
-      z-index: 500;
+      z-index: 2000;
       justify-content: center;
       align-items: center;
       backdrop-filter: blur(2px);
@@ -321,7 +330,7 @@
       border-radius: 7px;
       font-size: 13px;
       outline: none;
-      transition: border 0.2s, box-shadow 0.2s;
+      transition: border 0.2s;
       background: #fafafa;
     }
     .fg input:focus, .fg textarea:focus, .fg select:focus {
@@ -340,7 +349,6 @@
       font-size: 13px;
       font-weight: 700;
       cursor: pointer;
-      transition: opacity 0.2s;
     }
     .btn-pri:hover { opacity: 0.88; }
     .btn-sec {
@@ -354,62 +362,18 @@
     }
     .btn-sec:hover { background: #e5e6e8; }
 
-    /* ─── INFO WINDOW ─── */
-    .iw {
-      background: white;
-      border: 2px solid #1a2744;
-      border-radius: 10px;
-      padding: 12px 15px;
-      min-width: 210px;
-      max-width: 270px;
-      box-shadow: 0 6px 20px rgba(0,0,0,0.2);
-      font-size: 12px;
-    }
-    .iw-title { font-weight: 800; color: #1a2744; font-size: 14px; margin-bottom: 8px; border-bottom: 1px solid #eee; padding-bottom: 6px; }
-    .iw-row { display: flex; gap: 6px; margin-bottom: 4px; }
-    .iw-label { color: #888; min-width: 52px; flex-shrink: 0; }
-    .iw-val { color: #222; font-weight: 500; word-break: break-all; }
-    .iw-link { color: #1558d6; text-decoration: none; font-size: 11px; }
-    .iw-link:hover { text-decoration: underline; }
-    .iw-actions { display: flex; gap: 6px; margin-top: 9px; padding-top: 8px; border-top: 1px solid #eee; }
+    /* ─── POPUP ─── */
+    .lf-popup { min-width: 200px; max-width: 260px; font-size: 12px; }
+    .lf-popup-title { font-weight: 800; color: #1a2744; font-size: 14px; margin-bottom: 8px; border-bottom: 1px solid #eee; padding-bottom: 6px; }
+    .lf-popup-row { display: flex; gap: 6px; margin-bottom: 4px; }
+    .lf-popup-label { color: #888; min-width: 52px; flex-shrink: 0; }
+    .lf-popup-val { color: #222; font-weight: 500; word-break: break-all; }
+    .lf-popup-link { color: #1558d6; text-decoration: none; font-size: 11px; }
+    .lf-popup-actions { display: flex; gap: 6px; margin-top: 9px; padding-top: 8px; border-top: 1px solid #eee; }
 
     /* ─── EMPTY STATE ─── */
-    .empty {
-      padding: 36px 20px;
-      text-align: center;
-      color: #bbb;
-      font-size: 13px;
-      line-height: 1.7;
-    }
+    .empty { padding: 36px 20px; text-align: center; color: #bbb; font-size: 13px; line-height: 1.7; }
     .empty .ei { font-size: 34px; display: block; margin-bottom: 8px; }
-
-    /* ─── MAP TYPE TOGGLE ─── */
-    .map-type-toggle {
-      position: absolute;
-      top: 10px;
-      right: 10px;
-      z-index: 100;
-      display: flex;
-      background: white;
-      border: 1.5px solid #ddd;
-      border-radius: 7px;
-      overflow: hidden;
-      box-shadow: 0 2px 8px rgba(0,0,0,0.15);
-    }
-    .mtt-btn {
-      padding: 7px 13px;
-      font-size: 12px;
-      font-weight: 600;
-      border: none;
-      background: white;
-      color: #555;
-      cursor: pointer;
-      transition: all 0.15s;
-      white-space: nowrap;
-    }
-    .mtt-btn + .mtt-btn { border-left: 1.5px solid #ddd; }
-    .mtt-btn:hover { background: #f5f5f5; }
-    .mtt-btn.active { background: #1a2744; color: #d4af37; }
 
     /* ─── RESPONSIVE ─── */
     @media (max-width: 700px) {
@@ -519,7 +483,7 @@
   </div>
 </section>
 
-<!-- ═══ MODAL: 매물 (헤이리 / 산업단지) ═══ -->
+<!-- ═══ MODAL: 매물 ═══ -->
 <div class="modal-overlay" id="modal-prop" onclick="closeOnBg(event,'modal-prop')">
   <div class="modal">
     <div class="modal-hd">
@@ -584,7 +548,7 @@
   </div>
 </div>
 
-<!-- ═══ MODAL: 필지 (운정) ═══ -->
+<!-- ═══ MODAL: 필지 ═══ -->
 <div class="modal-overlay" id="modal-plot" onclick="closeOnBg(event,'modal-plot')">
   <div class="modal">
     <div class="modal-hd">
@@ -645,52 +609,92 @@ const DB = {
 };
 
 // ════════════════════════════════════════════
+// ■ MAP TILE LAYERS
+// ════════════════════════════════════════════
+// OSM 기본 타일
+const TILE_OSM = 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png';
+const TILE_OSM_ATTR = '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>';
+
+// 브이월드 배경지도 (국토교통부)
+const TILE_VWORLD = 'https://xdworld.vworld.kr/2d/Base/service/{z}/{x}/{y}.png';
+const TILE_VWORLD_ATTR = '© <a href="https://www.vworld.kr">VWorld</a> 국토교통부';
+
+// 브이월드 지적도 오버레이
+const TILE_CADASTRAL = 'https://xdworld.vworld.kr/2d/Cadastral/service/{z}/{x}/{y}.png';
+
+// ════════════════════════════════════════════
 // ■ MAP TYPE
 // ════════════════════════════════════════════
-let currentMapType = 'district'; // 기본값: 지적편집도
+let currentMapType = 'district';
+const mapObjects = [null, null, null];
+const baseLayers = [null, null, null];
+const cadastralLayers = [null, null, null];
 
 function setMapType(type) {
   currentMapType = type;
-  // 버튼 상태 업데이트 (모든 탭)
   [0,1,2].forEach(i => {
     const road = document.getElementById(`mtt${i}-road`);
     const dist = document.getElementById(`mtt${i}-district`);
     if (road) road.classList.toggle('active', type === 'road');
     if (dist) dist.classList.toggle('active', type === 'district');
   });
-  // 초기화된 모든 지도에 적용
-  maps.forEach(map => {
+  mapObjects.forEach((map, i) => {
     if (!map) return;
     if (type === 'district') {
-      map.addOverlayMapTypeId(kakao.maps.MapTypeId.USE_DISTRICT);
+      if (cadastralLayers[i] && !map.hasLayer(cadastralLayers[i])) {
+        cadastralLayers[i].addTo(map);
+      }
     } else {
-      map.removeOverlayMapTypeId(kakao.maps.MapTypeId.USE_DISTRICT);
+      if (cadastralLayers[i] && map.hasLayer(cadastralLayers[i])) {
+        map.removeLayer(cadastralLayers[i]);
+      }
     }
   });
 }
 
-function applyDefaultMapType(map) {
-  if (currentMapType === 'district') {
-    map.addOverlayMapTypeId(kakao.maps.MapTypeId.USE_DISTRICT);
-  }
+function createMap(elId, lat, lng, zoom) {
+  const map = L.map(elId, { zoomControl: true }).setView([lat, lng], zoom);
+
+  // 브이월드 배경지도 (실패시 OSM 폴백)
+  const baseLayer = L.tileLayer(TILE_VWORLD, {
+    attribution: TILE_VWORLD_ATTR,
+    maxZoom: 19,
+    errorTileUrl: '',
+  }).addTo(map);
+
+  baseLayer.on('tileerror', () => {
+    // 브이월드 실패시 OSM으로 교체
+    map.removeLayer(baseLayer);
+    L.tileLayer(TILE_OSM, { attribution: TILE_OSM_ATTR, maxZoom: 19 }).addTo(map);
+  });
+
+  // 지적도 오버레이
+  const cadastralLayer = L.tileLayer(TILE_CADASTRAL, {
+    attribution: '© 국토교통부 지적도',
+    maxZoom: 19,
+    opacity: 0.7,
+  });
+
+  return { map, baseLayer, cadastralLayer };
 }
 
 // ════════════════════════════════════════════
 // ■ TAB SWITCHING
 // ════════════════════════════════════════════
 const mapInited = [false, false, false];
-const maps = [null, null, null];
 let activeTab = 0;
-let kakaoReady = false;
 
 function switchTab(i) {
   document.querySelectorAll('.tab-btn').forEach((b, j) => b.classList.toggle('active', i === j));
   document.querySelectorAll('.tab-content').forEach((c, j) => c.classList.toggle('active', i === j));
   activeTab = i;
-  if (!kakaoReady) return;
   setTimeout(() => {
-    if (!mapInited[i]) { initMap(i); mapInited[i] = true; }
-    else if (maps[i]) kakao.maps.event.trigger(maps[i], 'resize');
+    if (!mapInited[i]) {
+      initMap(i);
+      mapInited[i] = true;
+    } else if (mapObjects[i]) {
+      mapObjects[i].invalidateSize();
+    }
   }, 60);
 }
 
@@ -698,21 +702,24 @@ function switchTab(i) {
 // ■ MAP INIT
 // ════════════════════════════════════════════
 const MAP_CFG = [
-  { el: 'map-heyri',      lat: 37.7929, lng: 126.6856, lv: 4 },
-  { el: 'map-industrial', lat: 37.7601, lng: 126.7800, lv: 8 },
-  { el: 'map-ungjeong',   lat: 37.7108, lng: 126.7890, lv: 5 },
+  { el: 'map-heyri',      lat: 37.7929, lng: 126.6856, zoom: 14 },
+  { el: 'map-industrial', lat: 37.7601, lng: 126.7800, zoom: 11 },
+  { el: 'map-ungjeong',   lat: 37.7108, lng: 126.7890, zoom: 14 },
 ];
 
 function initMap(i) {
   const cfg = MAP_CFG[i];
-  maps[i] = new kakao.maps.Map(document.getElementById(cfg.el), {
-    center: new kakao.maps.LatLng(cfg.lat, cfg.lng),
-    level: cfg.lv,
-  });
-  applyDefaultMapType(maps[i]);
-  if (i === 0) setupHeyri();
-  else if (i === 1) setupIndustrial();
-  else setupUngjeong();
+  const { map, baseLayer, cadastralLayer } = createMap(cfg.el, cfg.lat, cfg.lng, cfg.zoom);
+  mapObjects[i] = map;
+  baseLayers[i] = baseLayer;
+  cadastralLayers[i] = cadastralLayer;
+
+  // 기본값: 지적편집도
+  if (currentMapType === 'district') cadastralLayer.addTo(map);
+
+  if (i === 0) setupHeyri(map);
+  else if (i === 1) setupIndustrial(map);
+  else setupUngjeong(map);
 }
 
 // ════════════════════════════════════════════
@@ -720,65 +727,54 @@ function initMap(i) {
 // ════════════════════════════════════════════
 let pinMode = false;
 let heyriMks = {};
-let openIW = null;
 
-function setupHeyri() {
+function setupHeyri(map) {
   renderHeyriList();
-  renderHeyriMarkers();
-  kakao.maps.event.addListener(maps[0], 'click', e => {
+  renderHeyriMarkers(map);
+  map.on('click', e => {
     if (!pinMode) return;
-    const ll = e.latLng;
     togglePinMode(false);
-    openPropModal('heyri', ll.getLat(), ll.getLng());
+    openPropModal('heyri', e.latlng.lat, e.latlng.lng);
   });
 }
 
 function togglePinMode(force) {
   pinMode = force !== undefined ? force : !pinMode;
   const btn = document.getElementById('btn-pin-mode');
-  if (pinMode) {
-    btn.classList.add('active');
-    btn.textContent = '📍 클릭하여 배치';
-    maps[0].setCursor('crosshair');
-  } else {
-    btn.classList.remove('active');
-    btn.textContent = '📍 핀 추가';
-    maps[0].setCursor('');
-  }
+  btn.classList.toggle('active', pinMode);
+  btn.textContent = pinMode ? '📍 클릭하여 배치' : '📍 핀 추가';
+  const el = document.getElementById('map-heyri');
+  el.style.cursor = pinMode ? 'crosshair' : '';
 }
 
-function renderHeyriMarkers() {
-  Object.values(heyriMks).forEach(m => m.setMap(null));
+function renderHeyriMarkers(map) {
+  if (!map) return;
+  Object.values(heyriMks).forEach(m => map.removeLayer(m));
   heyriMks = {};
   DB.get('heyri').forEach(p => {
-    if (p.lat && p.lng) heyriMks[p.id] = addPropMarker(maps[0], p, 'heyri');
+    if (p.lat && p.lng) heyriMks[p.id] = addPropMarker(map, p, 'heyri');
   });
 }
 
 function addPropMarker(map, p, tab) {
-  const mk = new kakao.maps.Marker({ position: new kakao.maps.LatLng(p.lat, p.lng), map });
-  const iw = new kakao.maps.InfoWindow({ content: buildIWContent(p, tab), removable: false });
-  kakao.maps.event.addListener(mk, 'click', () => {
-    if (openIW) openIW.close();
-    iw.open(map, mk);
-    openIW = iw;
-  });
+  const mk = L.marker([p.lat, p.lng]).addTo(map);
+  mk.bindPopup(buildPopupContent(p, tab));
   return mk;
 }
 
-function buildIWContent(p, tab) {
+function buildPopupContent(p, tab) {
   const rows = [
-    p.area    ? `<div class="iw-row"><span class="iw-label">면적</span><span class="iw-val">${p.area}㎡</span></div>` : '',
-    p.sale    ? `<div class="iw-row"><span class="iw-label">매매가</span><span class="iw-val">${p.sale}</span></div>` : '',
-    p.rent    ? `<div class="iw-row"><span class="iw-label">임대가</span><span class="iw-val">${p.rent}</span></div>` : '',
-    p.use     ? `<div class="iw-row"><span class="iw-label">용도</span><span class="iw-val">${p.use}</span></div>` : '',
-    p.memo    ? `<div class="iw-row"><span class="iw-label">메모</span><span class="iw-val">${escHtml(p.memo)}</span></div>` : '',
-    p.naver   ? `<div class="iw-row"><a class="iw-link" href="${p.naver}" target="_blank">📎 네이버 매물 보기 →</a></div>` : '',
+    p.area  ? `<div class="lf-popup-row"><span class="lf-popup-label">면적</span><span class="lf-popup-val">${p.area}㎡</span></div>` : '',
+    p.sale  ? `<div class="lf-popup-row"><span class="lf-popup-label">매매가</span><span class="lf-popup-val">${p.sale}</span></div>` : '',
+    p.rent  ? `<div class="lf-popup-row"><span class="lf-popup-label">임대가</span><span class="lf-popup-val">${p.rent}</span></div>` : '',
+    p.use   ? `<div class="lf-popup-row"><span class="lf-popup-label">용도</span><span class="lf-popup-val">${p.use}</span></div>` : '',
+    p.memo  ? `<div class="lf-popup-row"><span class="lf-popup-label">메모</span><span class="lf-popup-val">${escHtml(p.memo)}</span></div>` : '',
+    p.naver ? `<div class="lf-popup-row"><a class="lf-popup-link" href="${p.naver}" target="_blank">📎 네이버 매물 보기 →</a></div>` : '',
   ].join('');
-  return `<div class="iw">
-    <div class="iw-title">📍 ${escHtml(p.jibun || '매물')}</div>
+  return `<div class="lf-popup">
+    <div class="lf-popup-title">📍 ${escHtml(p.jibun || '매물')}</div>
     ${rows}
-    <div class="iw-actions">
+    <div class="lf-popup-actions">
       <button class="btn-e" onclick="editProp('${p.id}','${tab}')">수정</button>
       <button class="btn-d" onclick="delProp('${p.id}','${tab}')">삭제</button>
     </div>
@@ -810,11 +806,11 @@ function focusProp(id, tab) {
   const p = DB.get(tab).find(x => x.id === id);
   if (!p || !p.lat) return;
   const mi = tab === 'heyri' ? 0 : 1;
-  if (!maps[mi]) return;
-  maps[mi].setCenter(new kakao.maps.LatLng(p.lat, p.lng));
-  maps[mi].setLevel(3);
+  const map = mapObjects[mi];
+  if (!map) return;
+  map.setView([p.lat, p.lng], 17);
   const mk = tab === 'heyri' ? heyriMks[id] : null;
-  if (mk) kakao.maps.event.trigger(mk, 'click');
+  if (mk) mk.openPopup();
 }
 
 // ════════════════════════════════════════════
@@ -824,39 +820,31 @@ const COMPLEXES = [
   { id: 'tanhyeon-nat',  name: '탄현국가산업단지',  lat: 37.7980, lng: 126.6855 },
   { id: 'seongdong',     name: '성동리산업단지',     lat: 37.8118, lng: 126.7050 },
   { id: 'tanhyeon-gen',  name: '탄현일반산업단지',   lat: 37.7920, lng: 126.6985 },
-  { id: 'chukbyeon',     name: '축현일반산업단지',    lat: 37.8015, lng: 126.7210 },
-  { id: 'dangdong',      name: '당동일반산업단지',    lat: 37.7248, lng: 126.7455 },
-  { id: 'weollong',      name: '월롱일반산업단지',    lat: 37.7525, lng: 126.7540 },
-  { id: 'seonyu',        name: '선유일반산업단지',    lat: 37.7805, lng: 126.8095 },
-  { id: 'beobwon',       name: '법원일반산업단지',    lat: 37.8248, lng: 126.8215 },
-  { id: 'munbal',        name: '문발일반산업단지',    lat: 37.7105, lng: 126.8058 },
-  { id: 'pajupub',       name: '파주출판산업단지',    lat: 37.7050, lng: 126.7785 },
-  { id: 'osan',          name: '오산일반산업단지',    lat: 37.7405, lng: 126.8348 },
+  { id: 'chukbyeon',     name: '축현일반산업단지',   lat: 37.8015, lng: 126.7210 },
+  { id: 'dangdong',      name: '당동일반산업단지',   lat: 37.7248, lng: 126.7455 },
+  { id: 'weollong',      name: '월롱일반산업단지',   lat: 37.7525, lng: 126.7540 },
+  { id: 'seonyu',        name: '선유일반산업단지',   lat: 37.7805, lng: 126.8095 },
+  { id: 'beobwon',       name: '법원일반산업단지',   lat: 37.8248, lng: 126.8215 },
+  { id: 'munbal',        name: '문발일반산업단지',   lat: 37.7105, lng: 126.8058 },
+  { id: 'pajupub',       name: '파주출판산업단지',   lat: 37.7050, lng: 126.7785 },
+  { id: 'osan',          name: '오산일반산업단지',   lat: 37.7405, lng: 126.8348 },
 ];
 
 let selComplex = null;
-let indMks = {};
 
-function setupIndustrial() {
+function setupIndustrial(map) {
   renderComplexChips();
   COMPLEXES.forEach(c => {
-    const mk = new kakao.maps.Marker({
-      position: new kakao.maps.LatLng(c.lat, c.lng),
-      map: maps[1],
-      title: c.name,
+    const icon = L.divIcon({
+      className: '',
+      html: `<div style="background:#1a2744;color:#d4af37;border:1.5px solid #d4af37;padding:4px 8px;border-radius:5px;font-size:10px;font-weight:700;white-space:nowrap;box-shadow:0 2px 6px rgba(0,0,0,0.3)">${c.name}</div>`,
+      iconAnchor: [0, 0],
     });
-    new kakao.maps.CustomOverlay({
-      position: new kakao.maps.LatLng(c.lat, c.lng),
-      content: `<div style="background:#1a2744;color:#d4af37;border:1px solid #d4af37;padding:3px 8px;border-radius:4px;font-size:10px;font-weight:700;white-space:nowrap;transform:translateY(-44px);box-shadow:0 2px 6px rgba(0,0,0,0.25)">${c.name}</div>`,
-      yAnchor: 1,
-      map: maps[1],
-    });
-    kakao.maps.event.addListener(mk, 'click', () => {
+    const mk = L.marker([c.lat, c.lng], { icon }).addTo(map);
+    mk.on('click', () => {
       selectComplex(c.id);
-      maps[1].panTo(new kakao.maps.LatLng(c.lat, c.lng));
-      maps[1].setLevel(5);
+      map.setView([c.lat, c.lng], 14);
     });
-    indMks[c.id] = mk;
   });
 }
 
@@ -870,7 +858,7 @@ function selectComplex(id) {
   renderComplexChips();
   renderIndustrialList();
   const c = COMPLEXES.find(x => x.id === id);
-  if (c && maps[1]) { maps[1].panTo(new kakao.maps.LatLng(c.lat, c.lng)); maps[1].setLevel(5); }
+  if (c && mapObjects[1]) mapObjects[1].setView([c.lat, c.lng], 14);
 }
 
 function renderIndustrialList() {
@@ -901,63 +889,58 @@ function renderIndustrialList() {
 // ════════════════════════════════════════════
 // ■ TAB 3 — 운정 단독택지
 // ════════════════════════════════════════════
-let geocoder;
 let ungMks = {};
 
-function setupUngjeong() {
-  geocoder = new kakao.maps.services.Geocoder();
+function setupUngjeong(map) {
   renderUngjeongList();
-  renderUngjeongMarkers();
+  renderUngjeongMarkers(map);
 }
 
 function searchAddr() {
   const raw = document.getElementById('addr-input').value.trim();
   if (!raw) return;
-  const q = /파주|경기/.test(raw) ? raw : '경기 파주시 ' + raw;
-  geocoder.addressSearch(q, (res, status) => {
-    if (status !== kakao.maps.services.Status.OK) {
-      alert('주소를 찾을 수 없습니다. 다시 확인해주세요.');
-      return;
-    }
-    const lat = parseFloat(res[0].y), lng = parseFloat(res[0].x);
-    maps[2].setCenter(new kakao.maps.LatLng(lat, lng));
-    maps[2].setLevel(3);
-    const existing = DB.get('ungjeong').find(p => p.jibun === raw);
-    if (existing) {
-      if (ungMks[existing.id]) kakao.maps.event.trigger(ungMks[existing.id], 'click');
-      alert(`[${raw}] 이미 등록된 필지입니다.`);
-    } else {
-      openPlotModal(lat, lng, raw);
-    }
-  });
+  // Nominatim (OpenStreetMap) 지오코딩
+  const q = encodeURIComponent('경기도 파주시 ' + raw);
+  fetch(`https://nominatim.openstreetmap.org/search?q=${q}&format=json&limit=1&accept-language=ko`)
+    .then(r => r.json())
+    .then(res => {
+      if (!res.length) { alert('주소를 찾을 수 없습니다. 다시 확인해주세요.'); return; }
+      const lat = parseFloat(res[0].lat), lng = parseFloat(res[0].lon);
+      const map = mapObjects[2];
+      map.setView([lat, lng], 17);
+      const existing = DB.get('ungjeong').find(p => p.jibun === raw);
+      if (existing) {
+        if (ungMks[existing.id]) ungMks[existing.id].openPopup();
+        alert(`[${raw}] 이미 등록된 필지입니다.`);
+      } else {
+        openPlotModal(lat, lng, raw);
+      }
+    })
+    .catch(() => alert('검색 중 오류가 발생했습니다.'));
 }
 
-function renderUngjeongMarkers() {
-  Object.values(ungMks).forEach(m => m.setMap(null));
+function renderUngjeongMarkers(map) {
+  if (!map) return;
+  Object.values(ungMks).forEach(m => map.removeLayer(m));
   ungMks = {};
   DB.get('ungjeong').forEach(p => {
     if (!p.lat || !p.lng) return;
-    const mk = new kakao.maps.Marker({ position: new kakao.maps.LatLng(p.lat, p.lng), map: maps[2] });
-    const iw = new kakao.maps.InfoWindow({ content: buildPlotIW(p), removable: false });
-    kakao.maps.event.addListener(mk, 'click', () => {
-      if (openIW) openIW.close();
-      iw.open(maps[2], mk);
-      openIW = iw;
-    });
+    const mk = L.marker([p.lat, p.lng]).addTo(map);
+    mk.bindPopup(buildPlotPopup(p));
     ungMks[p.id] = mk;
   });
 }
 
-function buildPlotIW(p) {
-  return `<div class="iw">
-    <div class="iw-title">🏘 ${escHtml(p.jibun || '필지')}</div>
-    ${p.area      ? `<div class="iw-row"><span class="iw-label">면적</span><span class="iw-val">${p.area}㎡</span></div>` : ''}
-    ${p.unitPrice ? `<div class="iw-row"><span class="iw-label">공급단가</span><span class="iw-val">${p.unitPrice}원/㎡</span></div>` : ''}
-    ${p.totalPrice? `<div class="iw-row"><span class="iw-label">공급금액</span><span class="iw-val">${p.totalPrice}</span></div>` : ''}
-    ${p.bcr       ? `<div class="iw-row"><span class="iw-label">건폐율</span><span class="iw-val">${p.bcr}</span></div>` : ''}
-    ${p.far       ? `<div class="iw-row"><span class="iw-label">용적률</span><span class="iw-val">${p.far}</span></div>` : ''}
-    ${p.memo      ? `<div class="iw-row"><span class="iw-label">메모</span><span class="iw-val">${escHtml(p.memo)}</span></div>` : ''}
-    <div class="iw-actions">
+function buildPlotPopup(p) {
+  return `<div class="lf-popup">
+    <div class="lf-popup-title">🏘 ${escHtml(p.jibun || '필지')}</div>
+    ${p.area       ? `<div class="lf-popup-row"><span class="lf-popup-label">면적</span><span class="lf-popup-val">${p.area}㎡</span></div>` : ''}
+    ${p.unitPrice  ? `<div class="lf-popup-row"><span class="lf-popup-label">공급단가</span><span class="lf-popup-val">${p.unitPrice}원/㎡</span></div>` : ''}
+    ${p.totalPrice ? `<div class="lf-popup-row"><span class="lf-popup-label">공급금액</span><span class="lf-popup-val">${p.totalPrice}</span></div>` : ''}
+    ${p.bcr        ? `<div class="lf-popup-row"><span class="lf-popup-label">건폐율</span><span class="lf-popup-val">${p.bcr}</span></div>` : ''}
+    ${p.far        ? `<div class="lf-popup-row"><span class="lf-popup-label">용적률</span><span class="lf-popup-val">${p.far}</span></div>` : ''}
+    ${p.memo       ? `<div class="lf-popup-row"><span class="lf-popup-label">메모</span><span class="lf-popup-val">${escHtml(p.memo)}</span></div>` : ''}
+    <div class="lf-popup-actions">
       <button class="btn-e" onclick="editPlot('${p.id}')">수정</button>
       <button class="btn-d" onclick="delPlot('${p.id}')">삭제</button>
     </div>
@@ -975,9 +958,7 @@ function renderUngjeongList() {
   el.innerHTML = data.map(p => `
     <div class="prop-card" onclick="focusPlot('${p.id}')">
       <div class="c-addr">📍 ${escHtml(p.jibun || '(지번 없음)')}</div>
-      <div class="c-use">
-        ${[p.area && p.area+'㎡', p.totalPrice, p.bcr && '건폐율'+p.bcr, p.far && '용적률'+p.far].filter(Boolean).join(' · ')}
-      </div>
+      <div class="c-use">${[p.area&&p.area+'㎡', p.totalPrice, p.bcr&&'건폐율'+p.bcr, p.far&&'용적률'+p.far].filter(Boolean).join(' · ')}</div>
       ${p.memo ? `<div class="c-use" style="color:#777;margin-top:2px">${escHtml(p.memo)}</div>` : ''}
       <div class="card-actions">
         <button class="btn-e" onclick="event.stopPropagation();editPlot('${p.id}')">수정</button>
@@ -989,14 +970,12 @@ function renderUngjeongList() {
 function focusPlot(id) {
   const p = DB.get('ungjeong').find(x => x.id === id);
   if (!p || !p.lat) return;
-  maps[2].setCenter(new kakao.maps.LatLng(p.lat, p.lng));
-  maps[2].setLevel(3);
-  if (ungMks[id]) kakao.maps.event.trigger(ungMks[id], 'click');
+  mapObjects[2].setView([p.lat, p.lng], 17);
+  if (ungMks[id]) ungMks[id].openPopup();
 }
 
 function handleCSV(input) {
-  const file = input.files[0];
-  if (!file) return;
+  const file = input.files[0]; if (!file) return;
   const reader = new FileReader();
   reader.onload = e => {
     const lines = e.target.result.split(/\r?\n/);
@@ -1005,13 +984,7 @@ function handleCSV(input) {
     for (let i = 1; i < lines.length; i++) {
       const cols = lines[i].split(',').map(s => s.trim().replace(/^"|"$/g, ''));
       if (!cols[0]) continue;
-      plots.push({
-        id: 'pl_' + Date.now() + '_' + i,
-        jibun: cols[0] || '', area: cols[1] || '',
-        unitPrice: cols[2] || '', totalPrice: cols[3] || '',
-        bcr: cols[4] || '', far: cols[5] || '',
-        memo: cols[6] || '', lat: null, lng: null,
-      });
+      plots.push({ id:'pl_'+Date.now()+'_'+i, jibun:cols[0]||'', area:cols[1]||'', unitPrice:cols[2]||'', totalPrice:cols[3]||'', bcr:cols[4]||'', far:cols[5]||'', memo:cols[6]||'', lat:null, lng:null });
       added++;
     }
     DB.set('ungjeong', plots);
@@ -1023,137 +996,102 @@ function handleCSV(input) {
 }
 
 function calcTotal() {
-  const area = parseFloat(document.getElementById('pl-area').value.replace(/,/g, ''));
-  const unit = parseFloat(document.getElementById('pl-unit').value.replace(/,/g, ''));
-  if (!isNaN(area) && !isNaN(unit)) {
-    const total = area * unit;
-    document.getElementById('pl-total').value = Math.round(total).toLocaleString() + '원';
-  }
+  const area = parseFloat(document.getElementById('pl-area').value.replace(/,/g,''));
+  const unit = parseFloat(document.getElementById('pl-unit').value.replace(/,/g,''));
+  if (!isNaN(area) && !isNaN(unit))
+    document.getElementById('pl-total').value = Math.round(area*unit).toLocaleString()+'원';
 }
 
 // ════════════════════════════════════════════
-// ■ MODAL — 매물 (헤이리 / 산업단지)
+// ■ MODAL — 매물
 // ════════════════════════════════════════════
 function openPropModal(tab, lat, lng) {
-  setVal('p-id', ''); setVal('p-tab', tab);
-  setVal('p-lat', lat || ''); setVal('p-lng', lng || '');
-  setVal('p-jibun', ''); setVal('p-area', ''); setVal('p-sale', '');
-  setVal('p-rent', ''); setVal('p-use', ''); setVal('p-memo', ''); setVal('p-naver', '');
-  document.getElementById('modal-prop-title').textContent = tab === 'heyri' ? '헤이리 매물 추가' : '산업단지 매물 추가';
+  setVal('p-id',''); setVal('p-tab',tab); setVal('p-lat',lat||''); setVal('p-lng',lng||'');
+  setVal('p-jibun',''); setVal('p-area',''); setVal('p-sale','');
+  setVal('p-rent',''); setVal('p-use',''); setVal('p-memo',''); setVal('p-naver','');
+  document.getElementById('modal-prop-title').textContent = tab==='heyri' ? '헤이리 매물 추가' : '산업단지 매물 추가';
   const fg = document.getElementById('fg-complex');
   if (tab === 'industrial') {
     fg.style.display = '';
     const sel = document.getElementById('p-complex');
-    sel.innerHTML = '<option value="">선택하세요</option>' +
-      COMPLEXES.map(c => `<option value="${c.id}">${c.name}</option>`).join('');
+    sel.innerHTML = '<option value="">선택하세요</option>' + COMPLEXES.map(c=>`<option value="${c.id}">${c.name}</option>`).join('');
     if (selComplex) sel.value = selComplex;
   } else fg.style.display = 'none';
   openModal('modal-prop');
 }
 
 function editProp(id, tab) {
-  const p = DB.get(tab).find(x => x.id === id);
-  if (!p) return;
-  setVal('p-id', p.id); setVal('p-tab', tab);
-  setVal('p-lat', p.lat || ''); setVal('p-lng', p.lng || '');
-  setVal('p-jibun', p.jibun || ''); setVal('p-area', p.area || '');
-  setVal('p-sale', p.sale || ''); setVal('p-rent', p.rent || '');
-  setVal('p-use', p.use || ''); setVal('p-memo', p.memo || '');
-  setVal('p-naver', p.naver || '');
+  const p = DB.get(tab).find(x=>x.id===id); if (!p) return;
+  setVal('p-id',p.id); setVal('p-tab',tab); setVal('p-lat',p.lat||''); setVal('p-lng',p.lng||'');
+  setVal('p-jibun',p.jibun||''); setVal('p-area',p.area||''); setVal('p-sale',p.sale||'');
+  setVal('p-rent',p.rent||''); setVal('p-use',p.use||''); setVal('p-memo',p.memo||''); setVal('p-naver',p.naver||'');
   document.getElementById('modal-prop-title').textContent = '매물 수정';
   const fg = document.getElementById('fg-complex');
-  if (tab === 'industrial') {
-    fg.style.display = '';
-    const sel = document.getElementById('p-complex');
-    sel.innerHTML = '<option value="">선택하세요</option>' +
-      COMPLEXES.map(c => `<option value="${c.id}">${c.name}</option>`).join('');
-    sel.value = p.complex || '';
-  } else fg.style.display = 'none';
+  if (tab==='industrial') {
+    fg.style.display='';
+    const sel=document.getElementById('p-complex');
+    sel.innerHTML='<option value="">선택하세요</option>'+COMPLEXES.map(c=>`<option value="${c.id}">${c.name}</option>`).join('');
+    sel.value=p.complex||'';
+  } else fg.style.display='none';
   openModal('modal-prop');
 }
 
 function saveProp() {
-  const jibun = gv('p-jibun');
-  if (!jibun) { alert('지번을 입력해주세요.'); return; }
-  const tab = gv('p-tab');
-  const id = gv('p-id');
-  const prop = {
-    id: id || 'prop_' + Date.now(),
-    complex: gv('p-complex'), jibun,
-    area: gv('p-area'), sale: gv('p-sale'),
-    rent: gv('p-rent'), use: gv('p-use'),
-    memo: gv('p-memo'), naver: gv('p-naver'),
-    lat: parseFloat(gv('p-lat')) || null,
-    lng: parseFloat(gv('p-lng')) || null,
-  };
+  const jibun = gv('p-jibun'); if (!jibun) { alert('지번을 입력해주세요.'); return; }
+  const tab = gv('p-tab'), id = gv('p-id');
+  const prop = { id:id||'prop_'+Date.now(), complex:gv('p-complex'), jibun, area:gv('p-area'), sale:gv('p-sale'), rent:gv('p-rent'), use:gv('p-use'), memo:gv('p-memo'), naver:gv('p-naver'), lat:parseFloat(gv('p-lat'))||null, lng:parseFloat(gv('p-lng'))||null };
   const data = DB.get(tab);
-  if (id) { const i = data.findIndex(x => x.id === id); if (i >= 0) data[i] = prop; }
-  else data.push(prop);
+  if (id) { const i=data.findIndex(x=>x.id===id); if(i>=0) data[i]=prop; } else data.push(prop);
   DB.set(tab, data);
   closeModal('modal-prop');
-  if (tab === 'heyri') { renderHeyriList(); if (mapInited[0]) renderHeyriMarkers(); }
+  if (tab==='heyri') { renderHeyriList(); if(mapInited[0]) renderHeyriMarkers(mapObjects[0]); }
   else renderIndustrialList();
 }
 
 function delProp(id, tab) {
   if (!confirm('매물을 삭제하시겠습니까?')) return;
-  DB.set(tab, DB.get(tab).filter(x => x.id !== id));
-  if (tab === 'heyri') {
-    if (heyriMks[id]) { heyriMks[id].setMap(null); delete heyriMks[id]; }
-    renderHeyriList();
-  } else renderIndustrialList();
-  if (openIW) { openIW.close(); openIW = null; }
+  DB.set(tab, DB.get(tab).filter(x=>x.id!==id));
+  if (tab==='heyri') { if(heyriMks[id]){mapObjects[0].removeLayer(heyriMks[id]);delete heyriMks[id];} renderHeyriList(); }
+  else renderIndustrialList();
 }
 
 // ════════════════════════════════════════════
-// ■ MODAL — 필지 (운정)
+// ■ MODAL — 필지
 // ════════════════════════════════════════════
 function openPlotModal(lat, lng, jibun) {
-  setVal('pl-id', ''); setVal('pl-lat', lat || ''); setVal('pl-lng', lng || '');
-  setVal('pl-jibun', jibun || ''); setVal('pl-area', ''); setVal('pl-unit', '');
-  setVal('pl-total', ''); setVal('pl-bcr', ''); setVal('pl-far', ''); setVal('pl-memo', '');
+  setVal('pl-id',''); setVal('pl-lat',lat||''); setVal('pl-lng',lng||'');
+  setVal('pl-jibun',jibun||''); setVal('pl-area',''); setVal('pl-unit','');
+  setVal('pl-total',''); setVal('pl-bcr',''); setVal('pl-far',''); setVal('pl-memo','');
   document.getElementById('modal-plot-title').textContent = '필지 추가';
   openModal('modal-plot');
 }
 
 function editPlot(id) {
-  const p = DB.get('ungjeong').find(x => x.id === id);
-  if (!p) return;
-  setVal('pl-id', p.id); setVal('pl-lat', p.lat || ''); setVal('pl-lng', p.lng || '');
-  setVal('pl-jibun', p.jibun || ''); setVal('pl-area', p.area || '');
-  setVal('pl-unit', p.unitPrice || ''); setVal('pl-total', p.totalPrice || '');
-  setVal('pl-bcr', p.bcr || ''); setVal('pl-far', p.far || ''); setVal('pl-memo', p.memo || '');
+  const p = DB.get('ungjeong').find(x=>x.id===id); if (!p) return;
+  setVal('pl-id',p.id); setVal('pl-lat',p.lat||''); setVal('pl-lng',p.lng||'');
+  setVal('pl-jibun',p.jibun||''); setVal('pl-area',p.area||''); setVal('pl-unit',p.unitPrice||'');
+  setVal('pl-total',p.totalPrice||''); setVal('pl-bcr',p.bcr||''); setVal('pl-far',p.far||''); setVal('pl-memo',p.memo||'');
   document.getElementById('modal-plot-title').textContent = '필지 수정';
   openModal('modal-plot');
 }
 
 function savePlot() {
-  const jibun = gv('pl-jibun');
-  if (!jibun) { alert('지번을 입력해주세요.'); return; }
+  const jibun = gv('pl-jibun'); if (!jibun) { alert('지번을 입력해주세요.'); return; }
   const id = gv('pl-id');
-  const plot = {
-    id: id || 'pl_' + Date.now(),
-    jibun, area: gv('pl-area'), unitPrice: gv('pl-unit'),
-    totalPrice: gv('pl-total'), bcr: gv('pl-bcr'),
-    far: gv('pl-far'), memo: gv('pl-memo'),
-    lat: parseFloat(gv('pl-lat')) || null,
-    lng: parseFloat(gv('pl-lng')) || null,
-  };
+  const plot = { id:id||'pl_'+Date.now(), jibun, area:gv('pl-area'), unitPrice:gv('pl-unit'), totalPrice:gv('pl-total'), bcr:gv('pl-bcr'), far:gv('pl-far'), memo:gv('pl-memo'), lat:parseFloat(gv('pl-lat'))||null, lng:parseFloat(gv('pl-lng'))||null };
   const data = DB.get('ungjeong');
-  if (id) { const i = data.findIndex(x => x.id === id); if (i >= 0) data[i] = plot; }
-  else data.push(plot);
+  if (id) { const i=data.findIndex(x=>x.id===id); if(i>=0) data[i]=plot; } else data.push(plot);
   DB.set('ungjeong', data);
   closeModal('modal-plot');
   renderUngjeongList();
-  if (mapInited[2]) renderUngjeongMarkers();
+  if (mapInited[2]) renderUngjeongMarkers(mapObjects[2]);
 }
 
 function delPlot(id) {
   if (!confirm('필지를 삭제하시겠습니까?')) return;
-  DB.set('ungjeong', DB.get('ungjeong').filter(x => x.id !== id));
-  if (ungMks[id]) { ungMks[id].setMap(null); delete ungMks[id]; }
+  DB.set('ungjeong', DB.get('ungjeong').filter(x=>x.id!==id));
+  if (ungMks[id]) { mapObjects[2].removeLayer(ungMks[id]); delete ungMks[id]; }
   renderUngjeongList();
-  if (openIW) { openIW.close(); openIW = null; }
 }
 
 // ════════════════════════════════════════════
@@ -1163,7 +1101,7 @@ const gv = id => document.getElementById(id).value.trim();
 const setVal = (id, v) => { document.getElementById(id).value = v; };
 const openModal = id => document.getElementById(id).classList.add('open');
 const closeModal = id => document.getElementById(id).classList.remove('open');
-const closeOnBg = (e, id) => { if (e.target === e.currentTarget) closeModal(id); };
+const closeOnBg = (e, id) => { if (e.target===e.currentTarget) closeModal(id); };
 function escHtml(s) {
   return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 }
@@ -1171,42 +1109,9 @@ function escHtml(s) {
 // ════════════════════════════════════════════
 // ■ INIT
 // ════════════════════════════════════════════
-function showMapError(reason) {
-  console.error('[하이탑맵] 카카오맵 로드 실패 ▶', reason);
-  ['map-heyri','map-industrial','map-ungjeong'].forEach(id => {
-    const wrap = document.getElementById(id)?.parentElement;
-    if (!wrap || wrap.querySelector('.map-error')) return;
-    const div = document.createElement('div');
-    div.className = 'map-error';
-    div.innerHTML = `
-      <div class="me-icon">🗺️</div>
-      <h3>카카오맵을 불러올 수 없습니다</h3>
-      <p>
-        카카오 개발자 콘솔 → 앱 > 일반 → 플랫폼 → Web<br>
-        사이트 도메인에 아래 주소를 추가하세요:<br><br>
-        <code>http://localhost:3456</code><br>
-        <code>https://hitoputube-creator.github.io</code><br><br>
-        <small style="color:#999">오류 코드: ${reason}</small>
-      </p>
-    `;
-    wrap.appendChild(div);
-  });
-}
-
 window.addEventListener('load', () => {
-  console.log('[하이탑맵] ① window.load - typeof kakao:', typeof kakao);
-
-  if (typeof kakao === 'undefined' || typeof kakao.maps === 'undefined') {
-    console.error('[하이탑맵] ✗ kakao 로드 실패 - 카카오 개발자 콘솔에서 도메인 등록 필요');
-    showMapError('kakao undefined');
-    return;
-  }
-
-  console.log('[하이탑맵] ② kakao.maps 로드 성공 - 지도 초기화 시작');
-  kakaoReady = true;
   initMap(0);
   mapInited[0] = true;
-  console.log('[하이탑맵] ③ 헤이리마을 지도 초기화 완료');
 });
 </script>
 </body>
