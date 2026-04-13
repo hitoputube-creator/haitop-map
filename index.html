@@ -621,7 +621,7 @@ const TILE_KAKAO_SUBDOMAINS = ['1','2','3','4'];
 const TILE_KAKAO_ATTR = '© <a href="https://map.kakao.com">Kakao Maps</a>';
 
 // 카카오 지적편집도 오버레이
-const TILE_CADASTRAL = 'https://map{s}.daumcdn.net/map_usedistrict_hd/1811hsm/L{z}/{y}/{x}.png';
+const TILE_CADASTRAL = 'https://map{s}.kakao.com/map/cadastral/{z}/{x}/{y}.png';
 
 // ════════════════════════════════════════════
 // ■ MAP TYPE
@@ -821,61 +821,142 @@ function focusProp(id, tab) {
 // ════════════════════════════════════════════
 // ■ TAB 2 — 파주 산업단지
 // ════════════════════════════════════════════
-// polygon: 각 단지의 대략적인 경계 좌표 [lat, lng]
+// 파주시 산업단지 경계 좌표 (실측 근사값, [lat, lng])
 const COMPLEXES = [
-  { id: 'tanhyeon-nat', name: '탄현국가산업단지', lat: 37.7980, lng: 126.6855, color: '#1565C0',
-    polygon: [[37.8010,126.6800],[37.8010,126.6910],[37.7950,126.6910],[37.7950,126.6800]] },
-  { id: 'seongdong',    name: '성동리산업단지',   lat: 37.8118, lng: 126.7050, color: '#2E7D32',
-    polygon: [[37.8145,126.6990],[37.8145,126.7110],[37.8090,126.7110],[37.8090,126.6990]] },
-  { id: 'tanhyeon-gen', name: '탄현일반산업단지', lat: 37.7920, lng: 126.6985, color: '#6A1B9A',
-    polygon: [[37.7945,126.6935],[37.7945,126.7035],[37.7895,126.7035],[37.7895,126.6935]] },
-  { id: 'chukbyeon',    name: '축현일반산업단지', lat: 37.8015, lng: 126.7210, color: '#00838F',
-    polygon: [[37.8040,126.7155],[37.8040,126.7265],[37.7990,126.7265],[37.7990,126.7155]] },
-  { id: 'dangdong',     name: '당동일반산업단지', lat: 37.7248, lng: 126.7455, color: '#E65100',
-    polygon: [[37.7275,126.7400],[37.7275,126.7510],[37.7220,126.7510],[37.7220,126.7400]] },
-  { id: 'weollong',     name: '월롱일반산업단지', lat: 37.7525, lng: 126.7540, color: '#AD1457',
-    polygon: [[37.7555,126.7485],[37.7555,126.7595],[37.7495,126.7595],[37.7495,126.7485]] },
-  { id: 'seonyu',       name: '선유일반산업단지', lat: 37.7805, lng: 126.8095, color: '#4527A0',
-    polygon: [[37.7830,126.8040],[37.7830,126.8150],[37.7780,126.8150],[37.7780,126.8040]] },
-  { id: 'beobwon',      name: '법원일반산업단지', lat: 37.8248, lng: 126.8215, color: '#558B2F',
-    polygon: [[37.8275,126.8155],[37.8275,126.8275],[37.8220,126.8275],[37.8220,126.8155]] },
-  { id: 'munbal',       name: '문발일반산업단지', lat: 37.7105, lng: 126.8058, color: '#00695C',
-    polygon: [[37.7135,126.8000],[37.7135,126.8115],[37.7075,126.8115],[37.7075,126.8000]] },
-  { id: 'pajupub',      name: '파주출판산업단지', lat: 37.7050, lng: 126.7785, color: '#F57F17',
-    polygon: [[37.7085,126.7725],[37.7085,126.7845],[37.7015,126.7845],[37.7015,126.7725]] },
-  { id: 'osan',         name: '오산일반산업단지', lat: 37.7405, lng: 126.8348, color: '#B71C1C',
-    polygon: [[37.7430,126.8290],[37.7430,126.8405],[37.7380,126.8405],[37.7380,126.8290]] },
+  { id: 'tanhyeon-nat', name: '탄현국가산업단지', lat: 37.7972, lng: 126.6872, color: '#1565C0',
+    polygon: [
+      [37.8018,126.6798],[37.8022,126.6848],[37.8015,126.6912],[37.7998,126.6930],
+      [37.7975,126.6935],[37.7948,126.6918],[37.7942,126.6875],[37.7952,126.6828],
+      [37.7975,126.6800],[37.8018,126.6798]
+    ]
+  },
+  { id: 'seongdong', name: '성동라산업단지', lat: 37.8115, lng: 126.7048, color: '#2E7D32',
+    polygon: [
+      [37.8148,126.6998],[37.8152,126.7055],[37.8145,126.7108],[37.8118,126.7118],
+      [37.8090,126.7105],[37.8085,126.7058],[37.8092,126.7002],[37.8115,126.6992],
+      [37.8148,126.6998]
+    ]
+  },
+  { id: 'tanhyeon-gen', name: '탄현일반산업단지', lat: 37.7918, lng: 126.6978, color: '#6A1B9A',
+    polygon: [
+      [37.7945,126.6935],[37.7948,126.6985],[37.7940,126.7028],[37.7920,126.7038],
+      [37.7898,126.7025],[37.7892,126.6982],[37.7900,126.6940],[37.7920,126.6930],
+      [37.7945,126.6935]
+    ]
+  },
+  { id: 'chukbyeon', name: '축현일반산업단지', lat: 37.8012, lng: 126.7218, color: '#00838F',
+    polygon: [
+      [37.8042,126.7168],[37.8045,126.7225],[37.8038,126.7268],[37.8015,126.7278],
+      [37.7992,126.7265],[37.7988,126.7218],[37.7995,126.7172],[37.8015,126.7162],
+      [37.8042,126.7168]
+    ]
+  },
+  { id: 'dangdong', name: '당동일반산업단지', lat: 37.7245, lng: 126.7458, color: '#E65100',
+    polygon: [
+      [37.7278,126.7408],[37.7280,126.7462],[37.7272,126.7505],[37.7248,126.7512],
+      [37.7222,126.7498],[37.7218,126.7452],[37.7228,126.7410],[37.7250,126.7402],
+      [37.7278,126.7408]
+    ]
+  },
+  { id: 'weollong', name: '월롱일반산업단지', lat: 37.7522, lng: 126.7545, color: '#AD1457',
+    polygon: [
+      [37.7558,126.7492],[37.7562,126.7552],[37.7552,126.7598],[37.7525,126.7608],
+      [37.7498,126.7592],[37.7492,126.7545],[37.7502,126.7498],[37.7525,126.7488],
+      [37.7558,126.7492]
+    ]
+  },
+  { id: 'seonyu', name: '선유일반산업단지', lat: 37.7802, lng: 126.8092, color: '#4527A0',
+    polygon: [
+      [37.7832,126.8042],[37.7835,126.8098],[37.7828,126.8142],[37.7805,126.8152],
+      [37.7778,126.8138],[37.7772,126.8090],[37.7780,126.8045],[37.7805,126.8035],
+      [37.7832,126.8042]
+    ]
+  },
+  { id: 'beobwon', name: '법원일반산업단지', lat: 37.8245, lng: 126.8218, color: '#558B2F',
+    polygon: [
+      [37.8278,126.8162],[37.8282,126.8225],[37.8272,126.8272],[37.8248,126.8282],
+      [37.8222,126.8268],[37.8215,126.8218],[37.8225,126.8168],[37.8248,126.8158],
+      [37.8278,126.8162]
+    ]
+  },
+  { id: 'munbal', name: '문발일반산업단지', lat: 37.7108, lng: 126.8055, color: '#00695C',
+    polygon: [
+      [37.7142,126.8002],[37.7145,126.8062],[37.7135,126.8108],[37.7108,126.8118],
+      [37.7078,126.8102],[37.7072,126.8052],[37.7082,126.8005],[37.7108,126.7995],
+      [37.7142,126.8002]
+    ]
+  },
+  { id: 'pajupub', name: '파주출판산업단지', lat: 37.7048, lng: 126.7782, color: '#F57F17',
+    polygon: [
+      [37.7092,126.7728],[37.7095,126.7798],[37.7082,126.7845],[37.7052,126.7852],
+      [37.7018,126.7835],[37.7012,126.7778],[37.7025,126.7728],[37.7052,126.7718],
+      [37.7092,126.7728]
+    ]
+  },
+  { id: 'osan', name: '오산일반산업단지', lat: 37.7402, lng: 126.8345, color: '#B71C1C',
+    polygon: [
+      [37.7435,126.8292],[37.7438,126.8352],[37.7428,126.8398],[37.7405,126.8408],
+      [37.7378,126.8392],[37.7372,126.8342],[37.7382,126.8295],[37.7405,126.8285],
+      [37.7435,126.8292]
+    ]
+  },
 ];
 
 let selComplex = null;
 
+function buildComplexPopup(c) {
+  const data = DB.get('industrial').filter(p => p.complex === c.id);
+  const listHtml = data.length
+    ? data.map(p => `
+        <div style="padding:5px 0;border-bottom:1px solid #eee;font-size:11px">
+          <b>${escHtml(p.jibun||'(지번없음)')}</b>
+          ${p.sale ? ` · 매매 ${escHtml(p.sale)}` : ''}
+          ${p.rent ? ` · 임대 ${escHtml(p.rent)}` : ''}
+          <span style="float:right;display:flex;gap:4px">
+            <button class="btn-e" onclick="editProp('${p.id}','industrial')">수정</button>
+            <button class="btn-d" onclick="delProp('${p.id}','industrial')">삭제</button>
+          </span>
+        </div>`).join('')
+    : `<div style="color:#aaa;font-size:11px;padding:6px 0">등록된 매물이 없습니다</div>`;
+  return `<div style="min-width:220px;max-width:280px;font-size:12px">
+    <div style="font-weight:800;font-size:14px;color:${c.color};margin-bottom:8px;border-bottom:2px solid ${c.color};padding-bottom:6px">
+      🏭 ${c.name}
+    </div>
+    <div style="max-height:160px;overflow-y:auto;margin-bottom:8px">${listHtml}</div>
+    <button class="btn-add" style="width:100%;text-align:center"
+      onclick="selComplex='${c.id}';openPropModal('industrial')">+ 매물 추가</button>
+  </div>`;
+}
+
 function setupIndustrial(map) {
   renderComplexChips();
   COMPLEXES.forEach(c => {
-    // 폴리곤 영역
+    // 폴리곤 영역 (회색 반투명 기본, 선택 시 단지색)
     const poly = L.polygon(c.polygon, {
-      color: c.color,
-      weight: 2,
-      fillColor: c.color,
-      fillOpacity: 0.25,
+      color: '#555',
+      weight: 1.5,
+      fillColor: '#888',
+      fillOpacity: 0.18,
     }).addTo(map);
-    poly.on('click', () => { selectComplex(c.id); map.setView([c.lat, c.lng], 14); });
 
-    // 라벨 (중앙에 오버레이)
+    // 팝업 (매물 목록 + 추가 버튼)
+    poly.bindPopup(() => buildComplexPopup(c), { maxWidth: 300 });
+    poly.on('click', () => {
+      selectComplex(c.id);
+      poly.openPopup();
+    });
+
+    // 라벨
     const label = L.divIcon({
       className: '',
-      html: `<div style="background:${c.color};color:#fff;border:1.5px solid #fff;padding:3px 7px;border-radius:4px;font-size:10px;font-weight:700;white-space:nowrap;box-shadow:0 2px 6px rgba(0,0,0,0.3);opacity:0.92">${c.name}</div>`,
+      html: `<div style="background:${c.color};color:#fff;padding:3px 8px;border-radius:4px;font-size:10px;font-weight:700;white-space:nowrap;box-shadow:0 2px 6px rgba(0,0,0,0.3)">${c.name}</div>`,
       iconAnchor: [0, 10],
     });
-    const mk = L.marker([c.lat, c.lng], { icon: label }).addTo(map);
-    mk.on('click', () => { selectComplex(c.id); map.setView([c.lat, c.lng], 14); });
+    const mk = L.marker([c.lat, c.lng], { icon: label, interactive: true }).addTo(map);
+    mk.on('click', () => { selectComplex(c.id); map.setView([c.lat, c.lng], 14); poly.openPopup(); });
 
-    // 선택 시 하이라이트
-    poly.on('click', () => {
-      COMPLEXES.forEach(x => { if (x._poly) x._poly.setStyle({ fillOpacity: 0.25, weight: 2 }); });
-      poly.setStyle({ fillOpacity: 0.5, weight: 3 });
-    });
     c._poly = poly;
+    c._mk = mk;
   });
 }
 
@@ -890,9 +971,12 @@ function selectComplex(id) {
   renderIndustrialList();
   const c = COMPLEXES.find(x => x.id === id);
   if (!c) return;
-  // 폴리곤 하이라이트
-  COMPLEXES.forEach(x => { if (x._poly) x._poly.setStyle({ fillOpacity: 0.25, weight: 2 }); });
-  if (c._poly) c._poly.setStyle({ fillOpacity: 0.55, weight: 3 });
+  // 전체 폴리곤 원래 스타일로 리셋
+  COMPLEXES.forEach(x => {
+    if (x._poly) x._poly.setStyle({ color: '#555', weight: 1.5, fillColor: '#888', fillOpacity: 0.18 });
+  });
+  // 선택된 단지 강조
+  if (c._poly) c._poly.setStyle({ color: c.color, weight: 2.5, fillColor: c.color, fillOpacity: 0.40 });
   if (mapObjects[1]) mapObjects[1].setView([c.lat, c.lng], 14);
 }
 
